@@ -10,8 +10,6 @@ type ActivityItem = { icon: string; label: string; date: string }
 
 type Stats = {
   folie: number
-  zbiory_dzis: number
-  zbiory_tydzien: number
   zamowienia: number
   sianie: number
   metry_folii: number
@@ -19,8 +17,11 @@ type Stats = {
 
 type ActivityDay = {
   date: string
-  zbiory: number
-  zamowienia: number
+  jedynka: number
+  jedynkaPeczki: number
+  dwojka: number
+  dwojkaPeczki: number
+  isToday: boolean
 }
 
 type WeeklyMeters = {
@@ -34,7 +35,10 @@ type WeeklyMeters = {
 const MS_DAY = 24 * 60 * 60 * 1000
 
 function toIsoDate(value: Date): string {
-  return value.toISOString().slice(0, 10)
+  const y = value.getFullYear()
+  const m = String(value.getMonth() + 1).padStart(2, '0')
+  const d = String(value.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 function startOfWeek(value: Date): Date {
@@ -50,9 +54,16 @@ function buildActivityWindow(): string[] {
   return Array.from({ length: 8 }, (_, index) => {
     const date = new Date()
     date.setHours(0, 0, 0, 0)
-    date.setDate(date.getDate() - 4 + index)
+    date.setDate(date.getDate() - 7 + index)
     return toIsoDate(date)
   })
+}
+
+function dayLabel(dateStr: string): string {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const date = new Date(y, m - 1, d)
+  const days = ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb']
+  return days[date.getDay()]
 }
 
 function buildWeekBuckets(weeks: number): WeeklyMeters[] {
@@ -104,14 +115,10 @@ function shortDateLabel(value: string): string {
 
 export default function PodsumowaniaPage() {
   const today = toIsoDate(new Date())
-  const weekAgo = toIsoDate(new Date(Date.now() - 7 * MS_DAY))
-  const activityStart = toIsoDate(new Date(Date.now() - 4 * MS_DAY))
-  const activityEnd = toIsoDate(new Date(Date.now() + 3 * MS_DAY))
+  const activityStart = toIsoDate(new Date(Date.now() - 7 * MS_DAY))
 
   const [stats, setStats] = useState<Stats>({
     folie: 0,
-    zbiory_dzis: 0,
-    zbiory_tydzien: 0,
     zamowienia: 0,
     sianie: 0,
     metry_folii: 0,
@@ -125,14 +132,11 @@ export default function PodsumowaniaPage() {
     const weekBuckets = buildWeekBuckets(6)
     const firstWeekStart = weekBuckets[0]?.weekStart ?? today
 
-    const [folieRows, zd, zt, zam, s, zbioryRows, zamowieniaRows, weeklySowingRows] = await Promise.all([
+    const [folieRows, zam, s, zbioryRows, weeklySowingRows] = await Promise.all([
       supabase.from('folie').select('id, metry_kwadratowe'),
-      supabase.from('zbiory').select('id', { count: 'exact', head: true }).eq('data_zbioru', today),
-      supabase.from('zbiory').select('id', { count: 'exact', head: true }).gte('data_zbioru', weekAgo),
       supabase.from('zamowienia').select('id', { count: 'exact', head: true }),
       supabase.from('sianie').select('id', { count: 'exact', head: true }),
-      supabase.from('zbiory').select('data_zbioru').gte('data_zbioru', activityStart).lte('data_zbioru', activityEnd),
-      supabase.from('zamowienia').select('data_na_kiedy').gte('data_na_kiedy', activityStart).lte('data_na_kiedy', activityEnd),
+      supabase.from('zbiory').select('data_zbioru, typ, ilosc_klatek, ilosc_w_klatce').gte('data_zbioru', activityStart).lte('data_zbioru', today),
       supabase.from('sianie').select('data, folia_id, folie(metry_kwadratowe)').gte('data', firstWeekStart).lte('data', today),
     ])
 
@@ -140,8 +144,6 @@ export default function PodsumowaniaPage() {
 
     setStats({
       folie: folieRows.data?.length ?? 0,
-      zbiory_dzis: zd.count ?? 0,
-      zbiory_tydzien: zt.count ?? 0,
       zamowienia: zam.count ?? 0,
       sianie: s.count ?? 0,
       metry_folii: totalMeters,
@@ -149,17 +151,17 @@ export default function PodsumowaniaPage() {
 
     const activityMap = new Map<string, ActivityDay>()
     for (const date of buildActivityWindow()) {
-      activityMap.set(date, { date, zbiory: 0, zamowienia: 0 })
+      activityMap.set(date, { date, jedynka: 0, jedynkaPeczki: 0, dwojka: 0, dwojkaPeczki: 0, isToday: date === today })
     }
 
     for (const row of zbioryRows.data ?? []) {
-      const day = row.data_zbioru
-      if (day && activityMap.has(day)) activityMap.get(day)!.zbiory += 1
-    }
-
-    for (const row of zamowieniaRows.data ?? []) {
-      const day = row.data_na_kiedy
-      if (day && activityMap.has(day)) activityMap.get(day)!.zamowienia += 1
+      const day = (row as any).data_zbioru
+      if (!day || !activityMap.has(day)) continue
+      const entry = activityMap.get(day)!
+      const kl = (row as any).ilosc_klatek ?? 0
+      const pwk = (row as any).ilosc_w_klatce ?? 25
+      if ((row as any).typ === 'jedynka') { entry.jedynka += kl; entry.jedynkaPeczki += kl * pwk }
+      else if ((row as any).typ === 'dwojka') { entry.dwojka += kl; entry.dwojkaPeczki += kl * pwk }
     }
 
     const weeklyMap = new Map(weekBuckets.map(week => [week.weekStart, { ...week }]))
@@ -231,14 +233,11 @@ export default function PodsumowaniaPage() {
   const statCards = [
     { label: 'Folie', value: stats.folie, suffix: '', color: 'text-green-700', bg: 'bg-green-50 border-green-200', href: '/mapa' },
     { label: 'Powierzchnia folii', value: stats.metry_folii, suffix: 'm²', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200', href: '/mapa' },
-    { label: 'Zbiory dziś', value: stats.zbiory_dzis, suffix: '', color: 'text-orange-700', bg: 'bg-orange-50 border-orange-200', href: '/zbiory' },
-    { label: 'Zbiory (7 dni)', value: stats.zbiory_tydzien, suffix: '', color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', href: '/zbiory' },
-    { label: 'Zasiewy', value: stats.sianie, suffix: '', color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200', href: '/sianie' },
+{ label: 'Zasiewy', value: stats.sianie, suffix: '', color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200', href: '/sianie' },
     { label: 'Zamówienia', value: stats.zamowienia, suffix: '', color: 'text-purple-700', bg: 'bg-purple-50 border-purple-200', href: '/zamowienia' },
   ]
 
-  const maxActivityValue = Math.max(1, ...activity.flatMap(day => [day.zbiory, day.zamowienia]))
-  const maxWeeklyMeters = Math.max(1, ...weeklyMeters.map(week => week.meters))
+const maxWeeklyMeters = Math.max(1, ...weeklyMeters.map(week => week.meters))
   const currentWeekMeters = weeklyMeters[weeklyMeters.length - 1]?.meters ?? 0
   const currentWeekFolie = weeklyMeters[weeklyMeters.length - 1]?.folieCount ?? 0
 
@@ -304,53 +303,96 @@ export default function PodsumowaniaPage() {
         )}
       </div>
 
-      <div className='bg-white border rounded-2xl overflow-hidden'>
-        <div className='px-4 py-3 border-b bg-slate-50 flex items-center justify-between gap-3'>
-          <div>
-            <h2 className='font-semibold text-gray-800'>Aktywność operacyjna</h2>
-            <p className='text-xs text-slate-600'>4 dni wstecz, dzisiaj i 3 kolejne dni.</p>
-          </div>
-          <div className='flex items-center gap-3 text-xs text-gray-600'>
-            <span className='flex items-center gap-1'>
-              <span className='size-2.5 rounded-full bg-orange-400' />
-              Zbiory
-            </span>
-            <span className='flex items-center gap-1'>
-              <span className='size-2.5 rounded-full bg-purple-400' />
-              Zamówienia
-            </span>
-          </div>
-        </div>
+      {(() => {
+        const totJ = activity.reduce((s, d) => s + d.jedynka, 0)
+        const totJp = activity.reduce((s, d) => s + d.jedynkaPeczki, 0)
+        const totD = activity.reduce((s, d) => s + d.dwojka, 0)
+        const totDp = activity.reduce((s, d) => s + d.dwojkaPeczki, 0)
+        return (
+          <div className='bg-white border rounded-2xl overflow-hidden'>
+            <div className='px-4 py-3 border-b bg-orange-50'>
+              <h2 className='font-semibold text-gray-800'>Zbiory — ostatnie 7 dni</h2>
+            </div>
 
-        {activity.length ? (
-          <div className='px-4 py-5'>
-            <div className='flex items-end gap-3 overflow-x-auto pb-2'>
-              {activity.map(day => (
-                <div key={day.date} className='min-w-[68px] flex-1'>
-                  <div className='h-44 flex items-end justify-center gap-1 rounded-xl bg-gray-50 px-2 py-3'>
-                    <div
-                      className='w-3 rounded-t-md bg-orange-400'
-                      style={{ height: `${Math.max(8, (day.zbiory / maxActivityValue) * 130)}px` }}
-                      title={`Zbiory: ${day.zbiory}`}
-                    />
-                    <div
-                      className='w-3 rounded-t-md bg-purple-400'
-                      style={{ height: `${Math.max(8, (day.zamowienia / maxActivityValue) * 130)}px` }}
-                      title={`Zamówienia: ${day.zamowienia}`}
-                    />
-                  </div>
-                  <div className='mt-2 text-center text-xs text-gray-500'>{shortDateLabel(day.date)}</div>
-                  <div className='mt-1 text-center text-[11px] text-gray-400'>
-                    {day.zbiory + day.zamowienia} wpisów
-                  </div>
+            {/* 7-day totals */}
+            <div className='grid grid-cols-3 divide-x border-b bg-gray-50 text-center'>
+              <div className='px-3 py-3'>
+                <div className='flex items-center justify-center gap-1 mb-1'>
+                  <span className='w-2.5 h-2.5 rounded-sm bg-orange-400 shrink-0' />
+                  <span className='text-[11px] font-medium text-gray-500'>Jedynka (7 dni)</span>
                 </div>
-              ))}
+                <div className='text-xl font-bold text-orange-600'>{totJ} <span className='text-sm font-medium'>kl.</span></div>
+                <div className='text-xs text-gray-400 mt-0.5'>{totJp} pęczków</div>
+              </div>
+              <div className='px-3 py-3'>
+                <div className='flex items-center justify-center gap-1 mb-1'>
+                  <span className='w-2.5 h-2.5 rounded-sm bg-amber-400 shrink-0' />
+                  <span className='text-[11px] font-medium text-gray-500'>Dwójka (7 dni)</span>
+                </div>
+                <div className='text-xl font-bold text-amber-500'>{totD} <span className='text-sm font-medium'>kl.</span></div>
+                <div className='text-xs text-gray-400 mt-0.5'>{totDp} pęczków</div>
+              </div>
+              <div className='px-3 py-3'>
+                <div className='text-[11px] font-medium text-gray-500 mb-1'>Razem (7 dni)</div>
+                <div className='text-xl font-bold text-gray-800'>{totJ + totD} <span className='text-sm font-medium'>kl.</span></div>
+                <div className='text-xs text-gray-400 mt-0.5'>{totJp + totDp} pęczków</div>
+              </div>
+            </div>
+
+            {/* column headers */}
+            <div className='grid grid-cols-[72px_1fr_1fr_1fr] gap-x-2 px-4 py-1.5 bg-gray-50 border-b text-[11px] font-medium text-gray-400 uppercase tracking-wide'>
+              <div>Dzień</div>
+              <div className='text-center'>Jedynka</div>
+              <div className='text-center'>Dwójka</div>
+              <div className='text-center'>Suma dnia</div>
+            </div>
+
+            {/* per-day rows */}
+            <div className='divide-y'>
+              {[...activity].reverse().map(day => {
+                const sumaKl = day.jedynka + day.dwojka
+                const sumaP = day.jedynkaPeczki + day.dwojkaPeczki
+                const empty = sumaKl === 0
+                return (
+                  <div key={day.date} className={`grid grid-cols-[72px_1fr_1fr_1fr] gap-x-2 px-4 py-2.5 items-center ${day.isToday ? 'bg-orange-50' : ''}`}>
+                    <div>
+                      <div className={`text-sm font-bold ${day.isToday ? 'text-orange-600' : 'text-gray-700'}`}>{dayLabel(day.date)}</div>
+                      <div className='text-[11px] text-gray-400'>{shortDateLabel(day.date)}</div>
+                      {day.isToday && <div className='text-[10px] font-semibold text-orange-400'>dziś</div>}
+                    </div>
+                    <div className='text-center'>
+                      {day.jedynka > 0 ? (
+                        <>
+                          <div className='text-sm font-bold text-orange-600'>{day.jedynka} kl.</div>
+                          <div className='text-[11px] text-gray-400'>{day.jedynkaPeczki} p.</div>
+                        </>
+                      ) : <span className='text-gray-300 text-sm'>—</span>}
+                    </div>
+                    <div className='text-center'>
+                      {day.dwojka > 0 ? (
+                        <>
+                          <div className='text-sm font-bold text-amber-500'>{day.dwojka} kl.</div>
+                          <div className='text-[11px] text-gray-400'>{day.dwojkaPeczki} p.</div>
+                        </>
+                      ) : <span className='text-gray-300 text-sm'>—</span>}
+                    </div>
+                    <div className='text-center'>
+                      {empty ? (
+                        <span className='text-gray-300 text-sm'>—</span>
+                      ) : (
+                        <>
+                          <div className='text-sm font-bold text-gray-800'>{sumaKl} kl.</div>
+                          <div className='text-[11px] text-gray-400'>{sumaP} p.</div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
-        ) : (
-          <div className='py-10 text-center text-gray-400 text-sm'>Brak danych do wykresu.</div>
-        )}
-      </div>
+        )
+      })()}
       <div className='bg-white border rounded-2xl overflow-hidden'>
         <div className='px-4 py-3 border-b bg-green-50 flex items-center gap-2'>
           <span className='text-lg'>🌱</span>
