@@ -59,8 +59,8 @@ export default function Home() {
   })
 
   const [zbiorFolia, setZbiorFolia] = useState('')
-  const [zbiorTyp, setZbiorTyp] = useState<'jedynka' | 'dwojka'>('jedynka')
-  const [zbiorKlatki, setZbiorKlatki] = useState('')
+  const [zbiorJedynka, setZbiorJedynka] = useState('')
+  const [zbiorDwojka, setZbiorDwojka] = useState('')
   const [zbiorPeczkowWKlatce, setZbiorPeczkowWKlatce] = useState('25')
   const [zbiorUwagi, setZbiorUwagi] = useState('')
   const [zbiorSaving, setZbiorSaving] = useState(false)
@@ -209,25 +209,23 @@ export default function Home() {
   }
 
   async function saveZbior() {
-    if (!zbiorFolia || !zbiorKlatki) return
+    const j = Number(zbiorJedynka) || 0
+    const d = Number(zbiorDwojka) || 0
+    if (!zbiorFolia || (j === 0 && d === 0)) return
+    const pwk = Number(zbiorPeczkowWKlatce) || 25
+    const base = { folia_id: Number(zbiorFolia), data_zbioru: today, ilosc_w_klatce: pwk, uwagi: zbiorUwagi || null }
+    const records: object[] = []
+    if (j > 0) records.push({ ...base, typ: 'jedynka', ilosc_klatek: j })
+    if (d > 0) records.push({ ...base, typ: 'dwojka', ilosc_klatek: d })
     setZbiorSaving(true)
-    const { error } = await supabase.from('zbiory').insert({
-      folia_id: Number(zbiorFolia),
-      data_zbioru: today,
-      typ: zbiorTyp,
-      ilosc_klatek: Number(zbiorKlatki),
-      ilosc_w_klatce: Number(zbiorPeczkowWKlatce) || 25,
-      uwagi: zbiorUwagi || null,
-    })
+    const { error } = await supabase.from('zbiory').insert(records)
     setZbiorSaving(false)
-    if (error) {
-      toast.error('Błąd: ' + error.message)
-      return
-    }
-    toast.success(`Zbiór — ${folie.find(f => f.id === Number(zbiorFolia))?.nazwa ?? ''} (${zbiorKlatki} kl.)`)
+    if (error) { toast.error('Błąd: ' + error.message); return }
+    const nazwa = folie.find(f => f.id === Number(zbiorFolia))?.nazwa ?? ''
+    toast.success(`Zbiór — ${nazwa} (${j + d} kl.)`)
     setZbiorFolia('')
-    setZbiorTyp('jedynka')
-    setZbiorKlatki('')
+    setZbiorJedynka('')
+    setZbiorDwojka('')
     setZbiorPeczkowWKlatce('25')
     setZbiorUwagi('')
     load()
@@ -329,10 +327,10 @@ export default function Home() {
         </Button>
       </div>
 
-      <div className='bg-white border rounded-2xl p-4'>
-        <div className='mb-3'>
-          <h2 className='font-semibold text-gray-800'>Mapa folii</h2>
-          <p className='text-sm text-gray-500'>Kliknij folię, żeby od razu dodać zasiew, zbiór, oprysk albo nawóz.</p>
+      <div className='bg-white border rounded-2xl overflow-hidden'>
+        <div className='px-3 py-2 flex items-center gap-2 border-b'>
+          <h2 className='font-semibold text-gray-800 text-sm'>🗺️ Mapa folii</h2>
+          <span className='text-xs text-gray-400'>Kliknij folię → zasiew / zbiór / oprysk / nawóz</span>
         </div>
         <MapView />
       </div>
@@ -443,29 +441,25 @@ export default function Home() {
                 <SelectContent>{folie.map(f => <SelectItem key={f.id} value={String(f.id)}>{f.nazwa}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>Typ rzodkiewki</Label>
-              <Select value={zbiorTyp} onValueChange={v => setZbiorTyp(v === 'dwojka' ? 'dwojka' : 'jedynka')}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value='jedynka'>Jedynka (większa)</SelectItem>
-                  <SelectItem value='dwojka'>Dwójka (mniejsza)</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className='grid grid-cols-2 gap-3'>
+              <div>
+                <Label>Jedynka (klatki)</Label>
+                <Input type='number' inputMode='numeric' min='0' value={zbiorJedynka} onChange={e => setZbiorJedynka(e.target.value)} placeholder='0' />
+              </div>
+              <div>
+                <Label>Dwójka (klatki)</Label>
+                <Input type='number' inputMode='numeric' min='0' value={zbiorDwojka} onChange={e => setZbiorDwojka(e.target.value)} placeholder='0' />
+              </div>
             </div>
             <div>
               <Label>Pęczków w klatce</Label>
               <Input type='number' min='1' value={zbiorPeczkowWKlatce} onChange={e => setZbiorPeczkowWKlatce(e.target.value)} placeholder='25' />
             </div>
             <div>
-              <Label>Ilość klatek</Label>
-              <Input type='number' min='0' value={zbiorKlatki} onChange={e => setZbiorKlatki(e.target.value)} placeholder='np. 12' onKeyDown={e => e.key === 'Enter' && saveZbior()} />
-            </div>
-            <div>
               <Label>Uwagi <span className='text-gray-400 font-normal'>(opcjonalnie)</span></Label>
               <Textarea value={zbiorUwagi} onChange={e => setZbiorUwagi(e.target.value)} rows={1} />
             </div>
-            <Button className='w-full bg-orange-500 hover:bg-orange-600' onClick={saveZbior} disabled={!zbiorFolia || !zbiorKlatki || zbiorSaving}>Dodaj zbiór</Button>
+            <Button className='w-full bg-orange-500 hover:bg-orange-600' onClick={saveZbior} disabled={!zbiorFolia || (Number(zbiorJedynka) === 0 && Number(zbiorDwojka) === 0) || zbiorSaving}>Dodaj zbiór</Button>
           </div>
         </div>
 

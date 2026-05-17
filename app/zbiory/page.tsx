@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { formatDatePL } from '@/lib/date'
 
-const empty = { folia_id: '', data_zbioru: '', typ: 'jedynka', ilosc_klatek: '', ilosc_w_klatce: '25', uwagi: '' }
+const empty = { folia_id: '', data_zbioru: '', jedynka_klatki: '', dwojka_klatki: '', ilosc_w_klatce: '25', uwagi: '' }
 
 function typLabel(typ: Zbior['typ']) {
   return typ === 'dwojka' ? 'Dwójka' : 'Jedynka'
@@ -29,6 +29,7 @@ export default function ZbioryPage() {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(empty)
   const [editId, setEditId] = useState<number | null>(null)
+  const [editTyp, setEditTyp] = useState<'jedynka' | 'dwojka'>('jedynka')
 
   async function load() {
     const [z, f] = await Promise.all([
@@ -48,11 +49,13 @@ export default function ZbioryPage() {
   }
 
   function openEdit(z: Zbior) {
+    const typ = z.typ === 'dwojka' ? 'dwojka' : 'jedynka'
+    setEditTyp(typ)
     setForm({
       folia_id: String(z.folia_id ?? ''),
       data_zbioru: z.data_zbioru,
-      typ: z.typ === 'dwojka' ? 'dwojka' : 'jedynka',
-      ilosc_klatek: String(z.ilosc_klatek ?? ''),
+      jedynka_klatki: typ === 'jedynka' ? String(z.ilosc_klatek ?? '') : '',
+      dwojka_klatki: typ === 'dwojka' ? String(z.ilosc_klatek ?? '') : '',
       ilosc_w_klatce: String(z.ilosc_w_klatce ?? 25),
       uwagi: z.uwagi ?? '',
     })
@@ -61,25 +64,35 @@ export default function ZbioryPage() {
   }
 
   async function save() {
-    const payload = {
+    const base = {
       folia_id: form.folia_id ? Number(form.folia_id) : null,
       data_zbioru: form.data_zbioru,
-      typ: form.typ === 'dwojka' ? 'dwojka' : 'jedynka',
-      ilosc_klatek: form.ilosc_klatek ? Number(form.ilosc_klatek) : null,
       ilosc_w_klatce: form.ilosc_w_klatce ? Number(form.ilosc_w_klatce) : 25,
       uwagi: form.uwagi || null,
     }
 
-    const { error } = editId
-      ? await supabase.from('zbiory').update(payload).eq('id', editId)
-      : await supabase.from('zbiory').insert(payload)
-
-    if (error) {
-      toast.error('Nie udało się zapisać: ' + error.message)
+    if (editId) {
+      const klatki = editTyp === 'jedynka'
+        ? (form.jedynka_klatki ? Number(form.jedynka_klatki) : 0)
+        : (form.dwojka_klatki ? Number(form.dwojka_klatki) : 0)
+      const { error } = await supabase.from('zbiory').update({ ...base, typ: editTyp, ilosc_klatek: klatki }).eq('id', editId)
+      if (error) { toast.error('Nie udało się zapisać: ' + error.message); return }
+      toast.success('Zbiór zaktualizowany')
+      setOpen(false)
+      load()
       return
     }
 
-    toast.success(editId ? 'Zbiór zaktualizowany' : 'Zbiór dodany')
+    const records: object[] = []
+    const j = form.jedynka_klatki ? Number(form.jedynka_klatki) : 0
+    const d = form.dwojka_klatki ? Number(form.dwojka_klatki) : 0
+    if (j > 0) records.push({ ...base, typ: 'jedynka', ilosc_klatek: j })
+    if (d > 0) records.push({ ...base, typ: 'dwojka', ilosc_klatek: d })
+    if (records.length === 0) { toast.error('Wpisz ilość klatek dla przynajmniej jednego typu'); return }
+
+    const { error } = await supabase.from('zbiory').insert(records)
+    if (error) { toast.error('Nie udało się zapisać: ' + error.message); return }
+    toast.success('Zbiór dodany')
     setOpen(false)
     load()
   }
@@ -87,10 +100,7 @@ export default function ZbioryPage() {
   async function remove(id: number) {
     if (!confirm('Usunąć zbiór?')) return
     const { error } = await supabase.from('zbiory').delete().eq('id', id)
-    if (error) {
-      toast.error('Nie udało się usunąć: ' + error.message)
-      return
-    }
+    if (error) { toast.error('Nie udało się usunąć: ' + error.message); return }
     toast.success('Zbiór usunięty')
     load()
   }
@@ -99,9 +109,11 @@ export default function ZbioryPage() {
   const totalPeczki = zbiory.reduce((s, z) => s + (peczki(z.ilosc_klatek, z.ilosc_w_klatce) ?? 0), 0)
   const totalJedynki = zbiory.reduce((s, z) => s + ((z.typ !== 'dwojka' ? z.ilosc_klatek : 0) ?? 0), 0)
   const totalDwojki = zbiory.reduce((s, z) => s + ((z.typ === 'dwojka' ? z.ilosc_klatek : 0) ?? 0), 0)
-  const formPeczki = form.ilosc_klatek && form.ilosc_w_klatce
-    ? Number(form.ilosc_klatek) * Number(form.ilosc_w_klatce)
-    : null
+
+  const pwk = form.ilosc_w_klatce ? Number(form.ilosc_w_klatce) : 25
+  const previewJ = form.jedynka_klatki ? Number(form.jedynka_klatki) * pwk : 0
+  const previewD = form.dwojka_klatki ? Number(form.dwojka_klatki) * pwk : 0
+  const previewTotal = previewJ + previewD
 
   return (
     <div>
@@ -179,32 +191,60 @@ export default function ZbioryPage() {
                 <SelectContent>{folie.map(fl => <SelectItem key={fl.id} value={String(fl.id)}>{fl.nazwa}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>Typ rzodkiewki</Label>
-              <Select value={form.typ} onValueChange={v => setForm(f => ({ ...f, typ: v === 'dwojka' ? 'dwojka' : 'jedynka' }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value='jedynka'>Jedynka (większa)</SelectItem>
-                  <SelectItem value='dwojka'>Dwójka (mniejsza)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+
             <div className='grid grid-cols-2 gap-3'>
               <div>
-                <Label>Ilość klatek</Label>
-                <Input type='number' value={form.ilosc_klatek} onChange={e => setForm(f => ({ ...f, ilosc_klatek: e.target.value }))} min='0' placeholder='np. 5' />
+                <Label>Jedynka (klatki)</Label>
+                <Input
+                  type='number'
+                  inputMode='numeric'
+                  value={form.jedynka_klatki}
+                  onChange={e => setForm(f => ({ ...f, jedynka_klatki: e.target.value }))}
+                  min='0'
+                  placeholder='0'
+                />
               </div>
               <div>
-                <Label>Pęczków w klatce</Label>
-                <Input type='number' value={form.ilosc_w_klatce} onChange={e => setForm(f => ({ ...f, ilosc_w_klatce: e.target.value }))} min='0' placeholder='np. 25' />
+                <Label>Dwójka (klatki)</Label>
+                <Input
+                  type='number'
+                  inputMode='numeric'
+                  value={form.dwojka_klatki}
+                  onChange={e => setForm(f => ({ ...f, dwojka_klatki: e.target.value }))}
+                  min='0'
+                  placeholder='0'
+                />
               </div>
             </div>
-            {formPeczki != null && (
-              <div className='bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 text-center'>
-                <span className='text-orange-700 font-semibold text-lg'>{formPeczki} pęczków</span>
-                <span className='text-orange-500 text-sm ml-2'>({form.ilosc_klatek} × {form.ilosc_w_klatce})</span>
+
+            <div>
+              <Label>Pęczków w klatce</Label>
+              <Input type='number' value={form.ilosc_w_klatce} onChange={e => setForm(f => ({ ...f, ilosc_w_klatce: e.target.value }))} min='0' placeholder='25' />
+            </div>
+
+            {previewTotal > 0 && (
+              <div className='bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 space-y-1'>
+                {previewJ > 0 && (
+                  <div className='flex justify-between text-sm'>
+                    <span className='text-orange-600'>Jedynka</span>
+                    <span className='font-semibold text-orange-700'>{previewJ} pęczków</span>
+                  </div>
+                )}
+                {previewD > 0 && (
+                  <div className='flex justify-between text-sm'>
+                    <span className='text-orange-600'>Dwójka</span>
+                    <span className='font-semibold text-orange-700'>{previewD} pęczków</span>
+                  </div>
+                )}
+                {previewJ > 0 && previewD > 0 && (
+                  <div className='flex justify-between text-sm border-t border-orange-200 pt-1 mt-1'>
+                    <span className='text-orange-700 font-semibold'>Razem</span>
+                    <span className='font-bold text-orange-800'>{previewTotal} pęczków</span>
+                  </div>
+                )}
               </div>
             )}
+
             <div>
               <Label>Uwagi</Label>
               <Textarea value={form.uwagi} onChange={e => setForm(f => ({ ...f, uwagi: e.target.value }))} rows={2} />

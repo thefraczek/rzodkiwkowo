@@ -1,5 +1,5 @@
 ﻿'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Folia, Nasiono } from '@/lib/types'
 import { toast } from 'sonner'
@@ -31,7 +31,7 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
   const [svgRef, setSvgRef] = useState<SVGSVGElement | null>(null)
 
   const [sianie, setSianie] = useState({ nasiona_id: '', uwagi: '' })
-  const [zbior, setZbior] = useState({ typ: 'jedynka', ilosc_klatek: '', ilosc_w_klatce: '25', uwagi: '' })
+  const [zbior, setZbior] = useState({ jedynka_klatki: '', dwojka_klatki: '', ilosc_w_klatce: '25', uwagi: '' })
   const [oprysk, setOprysk] = useState({ preparat: '', uwagi: '' })
   const [nawoz, setNawoz] = useState({ nawoz_id: '', ilosc: '', jednostka: 'kg' })
 
@@ -48,12 +48,24 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
 
   useEffect(() => { load() }, [reloadSignal])
 
+  const viewBox = useMemo(() => {
+    if (!folie.length) return `0 0 ${SVG_W} ${SVG_H}`
+
+    const padding = 8
+    const minX = Math.max(0, Math.min(...folie.map(f => f.pos_x)) - padding)
+    const minY = Math.max(0, Math.min(...folie.map(f => f.pos_y)) - padding)
+    const maxX = Math.max(...folie.map(f => f.pos_x + f.szerokosc)) + padding
+    const maxY = Math.max(...folie.map(f => f.pos_y + f.wysokosc)) + padding
+
+    return `${minX} ${minY} ${Math.max(320, maxX - minX)} ${Math.max(320, maxY - minY)}`
+  }, [folie])
+
   async function loadInfo(foliaId: number) {
     const [s, z] = await Promise.all([
       supabase.from('sianie').select('data').eq('folia_id', foliaId).order('data', { ascending: false }).limit(1),
       supabase.from('zbiory').select('data_zbioru, ilosc_klatek').eq('folia_id', foliaId).order('data_zbioru', { ascending: false }),
     ])
-    const totalKlatek = (z.data ?? []).reduce((s, r) => s + (r.ilosc_klatek ?? 0), 0)
+    const totalKlatek = (z.data ?? []).reduce((sum, row) => sum + (row.ilosc_klatek ?? 0), 0)
     setInfo({ ostatnieSianie: s.data?.[0]?.data ?? null, ostatniZbior: z.data?.[0]?.data_zbioru ?? null, klatek: totalKlatek })
   }
 
@@ -98,7 +110,7 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
 
   async function onMouseUp() {
     if (!dragging) return
-    const f = folie.find(f => f.id === dragging.id)
+    const f = folie.find(item => item.id === dragging.id)
     if (f) await supabase.from('folie').update({ pos_x: f.pos_x, pos_y: f.pos_y }).eq('id', f.id)
     setDragging(null)
   }
@@ -121,25 +133,35 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
 
   async function saveSianie() {
     const today = new Date().toISOString().slice(0, 10)
-    const { error } = await supabase.from('sianie').insert({ folia_id: selected!.id, nasiona_id: sianie.nasiona_id ? Number(sianie.nasiona_id) : null, data: today, uwagi: sianie.uwagi || null })
+    const { error } = await supabase.from('sianie').insert({
+      folia_id: selected!.id,
+      nasiona_id: sianie.nasiona_id ? Number(sianie.nasiona_id) : null,
+      data: today,
+      uwagi: sianie.uwagi || null,
+    })
     if (error) { toast.error('Błąd: ' + error.message); return }
     toast.success('Zasiew dodany — ' + selected!.nazwa)
-    setSianie({ nasiona_id: '', uwagi: '' }); setAkcja(null); loadInfo(selected!.id)
+    setSianie({ nasiona_id: '', uwagi: '' })
+    setAkcja(null)
+    loadInfo(selected!.id)
   }
 
   async function saveZbior() {
     const today = new Date().toISOString().slice(0, 10)
-    const { error } = await supabase.from('zbiory').insert({
-      folia_id: selected!.id,
-      data_zbioru: today,
-      typ: zbior.typ === 'dwojka' ? 'dwojka' : 'jedynka',
-      ilosc_klatek: zbior.ilosc_klatek ? Number(zbior.ilosc_klatek) : null,
-      ilosc_w_klatce: zbior.ilosc_w_klatce ? Number(zbior.ilosc_w_klatce) : 25,
-      uwagi: zbior.uwagi || null,
-    })
+    const j = Number(zbior.jedynka_klatki) || 0
+    const d = Number(zbior.dwojka_klatki) || 0
+    if (j === 0 && d === 0) { toast.error('Wpisz ilość klatek'); return }
+    const pwk = Number(zbior.ilosc_w_klatce) || 25
+    const base = { folia_id: selected!.id, data_zbioru: today, ilosc_w_klatce: pwk, uwagi: zbior.uwagi || null }
+    const records: object[] = []
+    if (j > 0) records.push({ ...base, typ: 'jedynka', ilosc_klatek: j })
+    if (d > 0) records.push({ ...base, typ: 'dwojka', ilosc_klatek: d })
+    const { error } = await supabase.from('zbiory').insert(records)
     if (error) { toast.error('Błąd: ' + error.message); return }
     toast.success('Zbiór dodany — ' + selected!.nazwa)
-    setZbior({ typ: 'jedynka', ilosc_klatek: '', ilosc_w_klatce: '25', uwagi: '' }); setAkcja(null); loadInfo(selected!.id)
+    setZbior({ jedynka_klatki: '', dwojka_klatki: '', ilosc_w_klatce: '25', uwagi: '' })
+    setAkcja(null)
+    loadInfo(selected!.id)
   }
 
   async function saveOprysk() {
@@ -147,7 +169,8 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
     const { error } = await supabase.from('opryski').insert({ folia_id: selected!.id, data: today, preparat: oprysk.preparat || null, uwagi: oprysk.uwagi || null })
     if (error) { toast.error('Błąd: ' + error.message); return }
     toast.success('Oprysk dodany — ' + selected!.nazwa)
-    setOprysk({ preparat: '', uwagi: '' }); setAkcja(null)
+    setOprysk({ preparat: '', uwagi: '' })
+    setAkcja(null)
   }
 
   async function saveNawoz() {
@@ -155,10 +178,16 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
     const { data: nav, error: e1 } = await supabase.from('nawozenie').insert({ folia_id: selected!.id, data: today }).select('id').single()
     if (e1) { toast.error('Błąd: ' + e1.message); return }
     if (nawoz.nawoz_id) {
-      await supabase.from('nawozenie_pozycje').insert({ nawozenie_id: nav.id, nawoz_id: Number(nawoz.nawoz_id), ilosc: nawoz.ilosc ? Number(nawoz.ilosc) : null, jednostka: nawoz.jednostka })
+      await supabase.from('nawozenie_pozycje').insert({
+        nawozenie_id: nav.id,
+        nawoz_id: Number(nawoz.nawoz_id),
+        ilosc: nawoz.ilosc ? Number(nawoz.ilosc) : null,
+        jednostka: nawoz.jednostka,
+      })
     }
     toast.success('Nawożenie dodane — ' + selected!.nazwa)
-    setNawoz({ nawoz_id: '', ilosc: '', jednostka: 'kg' }); setAkcja(null)
+    setNawoz({ nawoz_id: '', ilosc: '', jednostka: 'kg' })
+    setAkcja(null)
   }
 
   return (
@@ -184,7 +213,7 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
 
       {allowEdit && editMode && (
         <div className="mb-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-md text-sm text-amber-800 flex items-center gap-2">
-          <span>✏️</span>
+          <span>Edycja</span>
           <span>Tryb edycji — przeciągaj folie, zmieniaj kolor i rozmiar. Kliknij folię, aby edytować jej ustawienia.</span>
         </div>
       )}
@@ -194,10 +223,10 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
           Brak folii. <a href="/folie" className="text-green-600 underline">Dodaj folię</a> najpierw.
         </div>
       ) : (
-        <div className="bg-white rounded-lg border overflow-auto">
+        <div className="overflow-auto">
           <svg
             ref={el => setSvgRef(el)}
-            viewBox={`0 0 ${SVG_W} ${SVG_H}`}
+            viewBox={viewBox}
             style={{ width: '100%', maxWidth: SVG_W, height: 'auto', display: 'block', cursor: dragging ? 'grabbing' : 'default' }}
             onMouseMove={onMouseMove}
             onMouseUp={onMouseUp}
@@ -243,7 +272,6 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
         </div>
       )}
 
-      {/* Dialog: akcje (tryb normalny) */}
       <Dialog open={!!selected && !editMode && !akcja} onOpenChange={o => { if (!o) setSelected(null) }}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>{selected?.nazwa}</DialogTitle></DialogHeader>
@@ -272,7 +300,6 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
         </DialogContent>
       </Dialog>
 
-      {/* Dialog: ustawienia folii (tylko tryb edycji) */}
       {allowEdit && (
         <Dialog open={!!selected && editMode} onOpenChange={o => { if (!o) setSelected(null) }}>
           <DialogContent className="max-w-sm">
@@ -281,20 +308,20 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs">Szerokość (px)</Label>
-                  <Input type="number" defaultValue={selected?.szerokosc} min={40} max={400}
-                    onBlur={e => changeSize('szerokosc', e.target.value)} />
+                  <Input type="number" defaultValue={selected?.szerokosc} min={40} max={400} onBlur={e => changeSize('szerokosc', e.target.value)} />
                 </div>
                 <div>
                   <Label className="text-xs">Wysokość (px)</Label>
-                  <Input type="number" defaultValue={selected?.wysokosc} min={30} max={300}
-                    onBlur={e => changeSize('wysokosc', e.target.value)} />
+                  <Input type="number" defaultValue={selected?.wysokosc} min={30} max={300} onBlur={e => changeSize('wysokosc', e.target.value)} />
                 </div>
               </div>
               <div>
                 <Label className="text-xs mb-2 block">Kolor</Label>
                 <div className="flex gap-2 flex-wrap">
                   {KOLORY.map(k => (
-                    <button key={k} onClick={() => changeColor(k)}
+                    <button
+                      key={k}
+                      onClick={() => changeColor(k)}
                       className="w-8 h-8 rounded-full border-2 transition-transform hover:scale-110"
                       style={{ background: k, borderColor: selected?.kolor === k ? '#15803d' : '#e5e7eb' }}
                     />
@@ -307,7 +334,6 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
         </Dialog>
       )}
 
-      {/* Dialog zasiew */}
       <Dialog open={akcja === 'sianie'} onOpenChange={o => { if (!o) setAkcja(null) }}>
         <DialogContent>
           <DialogHeader><DialogTitle>🌱 Zasiew — {selected?.nazwa}</DialogTitle></DialogHeader>
@@ -331,24 +357,19 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
         </DialogContent>
       </Dialog>
 
-      {/* Dialog zbiór */}
       <Dialog open={akcja === 'zbior'} onOpenChange={o => { if (!o) setAkcja(null) }}>
         <DialogContent>
           <DialogHeader><DialogTitle>🥕 Zbiór — {selected?.nazwa}</DialogTitle></DialogHeader>
           <div className="space-y-4 mt-2">
-            <div>
-              <Label>Typ rzodkiewki</Label>
-              <Select value={zbior.typ} onValueChange={v => setZbior(s => ({ ...s, typ: v === 'dwojka' ? 'dwojka' : 'jedynka' }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="jedynka">Jedynka (większa)</SelectItem>
-                  <SelectItem value="dwojka">Dwójka (mniejsza)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Ilość klatek</Label>
-              <Input type="number" value={zbior.ilosc_klatek} onChange={e => setZbior(s => ({ ...s, ilosc_klatek: e.target.value }))} min="0" autoFocus />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Jedynka (klatki)</Label>
+                <Input type="number" inputMode="numeric" value={zbior.jedynka_klatki} onChange={e => setZbior(s => ({ ...s, jedynka_klatki: e.target.value }))} min="0" placeholder="0" autoFocus />
+              </div>
+              <div>
+                <Label>Dwójka (klatki)</Label>
+                <Input type="number" inputMode="numeric" value={zbior.dwojka_klatki} onChange={e => setZbior(s => ({ ...s, dwojka_klatki: e.target.value }))} min="0" placeholder="0" />
+              </div>
             </div>
             <div>
               <Label>Pęczków w klatce</Label>
@@ -366,7 +387,6 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
         </DialogContent>
       </Dialog>
 
-      {/* Dialog oprysk */}
       <Dialog open={akcja === 'oprysk'} onOpenChange={o => { if (!o) setAkcja(null) }}>
         <DialogContent>
           <DialogHeader><DialogTitle>💧 Oprysk — {selected?.nazwa}</DialogTitle></DialogHeader>
@@ -387,7 +407,6 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
         </DialogContent>
       </Dialog>
 
-      {/* Dialog nawóz */}
       <Dialog open={akcja === 'nawoz'} onOpenChange={o => { if (!o) setAkcja(null) }}>
         <DialogContent>
           <DialogHeader><DialogTitle>🌿 Nawóz — {selected?.nazwa}</DialogTitle></DialogHeader>
@@ -422,4 +441,3 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
     </div>
   )
 }
-
