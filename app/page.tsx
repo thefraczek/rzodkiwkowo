@@ -16,9 +16,27 @@ import { formatDatePL } from '@/lib/date'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 type UpcomingSummary = { date: string; jedynka: number; dwojka: number; ordersCount: number } | null
+type ActiveSowing = { id: number; data: string; folia_id: number | null; folie: { nazwa: string; kolor: string } | null }
+type ActivityItem = { icon: string; label: string; date: string }
 
 const today = new Date().toISOString().slice(0, 10)
 const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+
+function daysAgo(dateStr: string): number {
+  const [y, m, d] = dateStr.slice(0, 10).split('-').map(Number)
+  const then = new Date(y, m - 1, d)
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  return Math.floor((now.getTime() - then.getTime()) / 86400000)
+}
+
+function relativeDate(dateStr: string): string {
+  const days = daysAgo(dateStr)
+  if (days === 0) return 'dziś'
+  if (days === 1) return 'wczoraj'
+  if (days < 7) return `${days} dni temu`
+  return formatDatePL(dateStr.slice(0, 10))
+}
 
 function odbiorcaName(o: any) {
   return o?.ksywa || [o?.imie, o?.nazwisko].filter(Boolean).join(' ') || '?'
@@ -74,6 +92,9 @@ export default function Home() {
   const [deliveryDate, setDeliveryDate] = useState(today)
   const [orders, setOrders] = useState<Zamowienie[]>([])
   const [issuedHistory, setIssuedHistory] = useState<Zamowienie[]>([])
+
+  const [activeSowings, setActiveSowings] = useState<ActiveSowing[]>([])
+  const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([])
 
   const [confirmAction, setConfirmAction] = useState<(() => Promise<void>) | null>(null)
   const [confirmMessage, setConfirmMessage] = useState('')
@@ -147,10 +168,62 @@ export default function Home() {
     setUpcomingSummary(summary)
   }
 
+  async function loadActiveSowings() {
+    const since = new Date(Date.now() - 70 * 86400000).toISOString().slice(0, 10)
+    const [s, z] = await Promise.all([
+      supabase.from('sianie').select('id, data, folia_id, folie(nazwa, kolor)').gte('data', since).order('data', { ascending: false }),
+      supabase.from('zbiory').select('folia_id, data_zbioru').gte('data_zbioru', since),
+    ])
+    const sowings = (s.data ?? []) as unknown as ActiveSowing[]
+    const harvests = (z.data ?? []) as { folia_id: number | null; data_zbioru: string }[]
+    const active = sowings.filter(s =>
+      !harvests.some(z => z.folia_id === s.folia_id && z.data_zbioru >= s.data)
+    )
+    setActiveSowings(active)
+  }
+
+  async function loadRecentActivity() {
+    const [zb, si, op, na, zam] = await Promise.all([
+      supabase.from('zbiory').select('data_zbioru, folie(nazwa), ilosc_klatek, typ').order('created_at', { ascending: false }).limit(5),
+      supabase.from('sianie').select('data, folie(nazwa)').order('created_at', { ascending: false }).limit(5),
+      supabase.from('opryski').select('data, folie(nazwa)').order('created_at', { ascending: false }).limit(3),
+      supabase.from('nawozenie').select('data, folie(nazwa)').order('created_at', { ascending: false }).limit(3),
+      supabase.from('zamowienia').select('data_utworzenia, odbiorcy(ksywa, imie, nazwisko), typ, ilosc, ilosc_w_klatce').order('data_utworzenia', { ascending: false }).limit(5),
+    ])
+
+    const items: ActivityItem[] = []
+
+    for (const r of zb.data ?? []) {
+      const kl = (r as any).ilosc_klatek
+      items.push({ icon: '🥕', label: `Zbiór — ${(r as any).folie?.nazwa ?? '?'}${kl ? ` (${kl} kl.)` : ''}`, date: (r as any).data_zbioru })
+    }
+    for (const r of si.data ?? []) {
+      items.push({ icon: '🌱', label: `Zasiew — ${(r as any).folie?.nazwa ?? '?'}`, date: (r as any).data })
+    }
+    for (const r of op.data ?? []) {
+      items.push({ icon: '💧', label: `Oprysk — ${(r as any).folie?.nazwa ?? '?'}`, date: (r as any).data })
+    }
+    for (const r of na.data ?? []) {
+      items.push({ icon: '🌿', label: `Nawożenie — ${(r as any).folie?.nazwa ?? '?'}`, date: (r as any).data })
+    }
+    for (const r of zam.data ?? []) {
+      const o = (r as any).odbiorcy
+      const name = o?.ksywa || [o?.imie, o?.nazwisko].filter(Boolean).join(' ') || '?'
+      const pozycje = parsePozycjeFromTyp((r as any).typ, (r as any).ilosc, (r as any).ilosc_w_klatce)
+      const kl = cratesFromPozycje(pozycje)
+      items.push({ icon: '📦', label: `Zamówienie — ${name}${kl ? ` (${kl} kl.)` : ''}`, date: (r as any).data_utworzenia.slice(0, 10) })
+    }
+
+    items.sort((a, b) => b.date.localeCompare(a.date))
+    setRecentActivity(items.slice(0, 8))
+  }
+
   useEffect(() => {
     load()
     loadOrders(today)
     loadUpcomingSummary()
+    loadActiveSowings()
+    loadRecentActivity()
   }, [])
 
   useEffect(() => {
@@ -335,6 +408,34 @@ export default function Home() {
         <MapView />
       </div>
 
+      {activeSowings.length > 0 && (
+        <div className='bg-white border rounded-2xl overflow-hidden'>
+          <div className='px-4 py-3 border-b bg-green-50 flex items-center gap-2'>
+            <span className='text-lg'>🌱</span>
+            <h2 className='font-semibold text-gray-800 text-sm'>Rośnie teraz</h2>
+            <span className='text-xs text-green-700 ml-auto'>{activeSowings.length} folii</span>
+          </div>
+          <div className='divide-y'>
+            {activeSowings.map(s => {
+              const days = daysAgo(s.data)
+              const status = days >= 28
+                ? { label: 'Gotowe!', cls: 'bg-green-100 text-green-700' }
+                : days >= 20
+                  ? { label: 'Dojrzewa', cls: 'bg-amber-100 text-amber-700' }
+                  : { label: `${days} dni`, cls: 'bg-blue-100 text-blue-700' }
+              return (
+                <div key={s.id} className='flex items-center gap-3 px-4 py-3'>
+                  <div className='w-2.5 h-2.5 rounded-full shrink-0' style={{ background: s.folie?.kolor ?? '#d1d5db' }} />
+                  <p className='flex-1 text-sm font-medium text-gray-800'>{s.folie?.nazwa ?? '—'}</p>
+                  <span className='text-xs text-gray-400'>od {formatDatePL(s.data)}</span>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${status.cls}`}>{status.label}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       <div className='bg-white border rounded-2xl overflow-hidden'>
         <div className='px-4 py-3 border-b bg-purple-50 flex items-center gap-3'>
           <span className='text-xl'>📦</span>
@@ -488,6 +589,24 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {recentActivity.length > 0 && (
+        <div className='bg-white border rounded-2xl overflow-hidden'>
+          <div className='px-4 py-3 border-b flex items-center gap-2'>
+            <span className='text-lg'>📋</span>
+            <h2 className='font-semibold text-gray-800 text-sm'>Ostatnie działania</h2>
+          </div>
+          <div className='divide-y'>
+            {recentActivity.map((a, i) => (
+              <div key={i} className='flex items-center gap-3 px-4 py-2.5'>
+                <span className='text-lg leading-none shrink-0'>{a.icon}</span>
+                <p className='flex-1 text-sm text-gray-800 truncate'>{a.label}</p>
+                <span className='text-xs text-gray-400 shrink-0'>{relativeDate(a.date)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <Dialog open={wydajOpen} onOpenChange={setWydajOpen}>
         <DialogContent>
