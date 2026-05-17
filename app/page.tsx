@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import type { Folia, Zamowienie } from '@/lib/types'
+import type { Folia, Odbiorca, Zamowienie } from '@/lib/types'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import MapView from '@/components/MapView'
-import { parsePozycjeFromTyp, cratesFromPozycje, formatPozycje } from '@/lib/order-lines'
+import { parsePozycjeFromTyp, cratesFromPozycje, formatPozycje, serializePozycje } from '@/lib/order-lines'
 
 type Stats = { folie: number; zbiory_dzis: number; zbiory_tydzien: number; zamowienia: number; sianie: number }
 
@@ -37,9 +37,24 @@ export default function Home() {
   const [stats, setStats] = useState<Stats>({ folie: 0, zbiory_dzis: 0, zbiory_tydzien: 0, zamowienia: 0, sianie: 0 })
   const [folie, setFolie] = useState<Folia[]>([])
   const [nasiona, setNasiona] = useState<{ id: number; nazwa: string }[]>([])
+  const [odbiorcy, setOdbiorcy] = useState<Odbiorca[]>([])
+
+  const [quickOrderOpen, setQuickOrderOpen] = useState(false)
+  const [quickOrderSaving, setQuickOrderSaving] = useState(false)
+  const [quickOrder, setQuickOrder] = useState({
+    odbiorca_id: '',
+    data_na_kiedy: today,
+    jedynka_klatki: '',
+    dwojka_klatki: '0',
+    peczkow_w_klatce: '25',
+    cena_za_peczek: '',
+    uwagi: '',
+  })
 
   const [zbiorFolia, setZbiorFolia] = useState('')
+  const [zbiorTyp, setZbiorTyp] = useState<'jedynka' | 'dwojka'>('jedynka')
   const [zbiorKlatki, setZbiorKlatki] = useState('')
+  const [zbiorPeczkowWKlatce, setZbiorPeczkowWKlatce] = useState('25')
   const [zbiorUwagi, setZbiorUwagi] = useState('')
   const [zbiorSaving, setZbiorSaving] = useState(false)
 
@@ -58,17 +73,19 @@ export default function Home() {
   const [wydajZaplacono, setWydajZaplacono] = useState('')
 
   async function load() {
-    const [f, zd, zt, zam, s, n] = await Promise.all([
+    const [f, zd, zt, zam, s, n, o] = await Promise.all([
       supabase.from('folie').select('*').order('nazwa'),
       supabase.from('zbiory').select('id', { count: 'exact', head: true }).eq('data_zbioru', today),
       supabase.from('zbiory').select('id', { count: 'exact', head: true }).gte('data_zbioru', weekAgo),
       supabase.from('zamowienia').select('id', { count: 'exact', head: true }),
       supabase.from('sianie').select('id', { count: 'exact', head: true }),
       supabase.from('nasiona').select('*').order('nazwa'),
+      supabase.from('odbiorcy').select('*').order('ksywa'),
     ])
 
     setFolie((f.data as Folia[]) ?? [])
     setNasiona((n.data as { id: number; nazwa: string }[]) ?? [])
+    setOdbiorcy((o.data as Odbiorca[]) ?? [])
     setStats({
       folie: f.data?.length ?? 0,
       zbiory_dzis: zd.count ?? 0,
@@ -102,13 +119,70 @@ export default function Home() {
     loadOrders(deliveryDate)
   }, [deliveryDate])
 
+  function resetQuickOrder() {
+    setQuickOrder({
+      odbiorca_id: '',
+      data_na_kiedy: today,
+      jedynka_klatki: '',
+      dwojka_klatki: '0',
+      peczkow_w_klatce: '25',
+      cena_za_peczek: '',
+      uwagi: '',
+    })
+  }
+
+  async function saveQuickOrder() {
+    const jedynka = Number(quickOrder.jedynka_klatki) || 0
+    const dwojka = Number(quickOrder.dwojka_klatki) || 0
+    const pwk = Number(quickOrder.peczkow_w_klatce) || 25
+    const cenaZaPeczek = quickOrder.cena_za_peczek ? Number(quickOrder.cena_za_peczek) : null
+    const pozycje = [
+      { typ: 'jedynka' as const, klatki: jedynka },
+      { typ: 'dwojka' as const, klatki: dwojka },
+    ].filter(p => p.klatki > 0)
+
+    if (!quickOrder.odbiorca_id || pozycje.length === 0) {
+      toast.error('Wybierz odbiorcę i wpisz liczbę klatek')
+      return
+    }
+
+    const totalKlatek = pozycje.reduce((sum, p) => sum + p.klatki, 0)
+    const totalPeczkow = totalKlatek * pwk
+
+    setQuickOrderSaving(true)
+    const { error } = await supabase.from('zamowienia').insert({
+      odbiorca_id: Number(quickOrder.odbiorca_id),
+      data_na_kiedy: quickOrder.data_na_kiedy || null,
+      ilosc: totalPeczkow,
+      ilosc_w_klatce: pwk,
+      typ: serializePozycje(pozycje),
+      cena_za_peczek: cenaZaPeczek,
+      cena_calkowita: cenaZaPeczek != null ? Number((totalPeczkow * cenaZaPeczek).toFixed(2)) : null,
+      uwagi: quickOrder.uwagi || null,
+    })
+    setQuickOrderSaving(false)
+
+    if (error) {
+      toast.error('Błąd: ' + error.message)
+      return
+    }
+
+    toast.success('Zamówienie dodane')
+    setQuickOrderOpen(false)
+    resetQuickOrder()
+    load()
+    loadOrders(deliveryDate)
+  }
+
   async function saveZbior() {
     if (!zbiorFolia || !zbiorKlatki) return
     setZbiorSaving(true)
     const { error } = await supabase.from('zbiory').insert({
       folia_id: Number(zbiorFolia),
       data_zbioru: today,
+      typ: zbiorTyp,
       ilosc_klatek: Number(zbiorKlatki),
+      ilosc_w_klatce: Number(zbiorPeczkowWKlatce) || 25,
       uwagi: zbiorUwagi || null,
     })
     setZbiorSaving(false)
@@ -118,7 +192,9 @@ export default function Home() {
     }
     toast.success(`Zbiór — ${folie.find(f => f.id === Number(zbiorFolia))?.nazwa ?? ''} (${zbiorKlatki} kl.)`)
     setZbiorFolia('')
+    setZbiorTyp('jedynka')
     setZbiorKlatki('')
+    setZbiorPeczkowWKlatce('25')
     setZbiorUwagi('')
     load()
   }
@@ -215,6 +291,16 @@ export default function Home() {
 
   return (
     <div className='space-y-5'>
+      <div className='flex items-center justify-between gap-3'>
+        <div>
+          <h1 className='text-xl font-bold text-gray-900'>Pulpit</h1>
+          <p className='text-sm text-gray-500'>Najczęstsze działania na dziś</p>
+        </div>
+        <Button className='shrink-0 bg-purple-600 hover:bg-purple-700' onClick={() => { resetQuickOrder(); setQuickOrderOpen(true) }}>
+          + Zamówienie
+        </Button>
+      </div>
+
       <div className='grid grid-cols-3 md:grid-cols-5 gap-2.5'>
         {statCards.map(c => (
           <a key={c.label} href={c.href} className={`border rounded-xl p-3 ${c.bg} hover:opacity-80 transition-opacity`}>
@@ -290,6 +376,20 @@ export default function Home() {
                 <SelectTrigger><SelectValue placeholder='Wybierz folię' /></SelectTrigger>
                 <SelectContent>{folie.map(f => <SelectItem key={f.id} value={String(f.id)}>{f.nazwa}</SelectItem>)}</SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label>Typ rzodkiewki</Label>
+              <Select value={zbiorTyp} onValueChange={v => setZbiorTyp(v === 'dwojka' ? 'dwojka' : 'jedynka')}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='jedynka'>Jedynka (większa)</SelectItem>
+                  <SelectItem value='dwojka'>Dwójka (mniejsza)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Pęczków w klatce</Label>
+              <Input type='number' min='1' value={zbiorPeczkowWKlatce} onChange={e => setZbiorPeczkowWKlatce(e.target.value)} placeholder='25' />
             </div>
             <div>
               <Label>Ilość klatek</Label>
@@ -385,6 +485,63 @@ export default function Home() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={quickOrderOpen} onOpenChange={setQuickOrderOpen}>
+        <DialogContent className='max-w-lg'>
+          <DialogHeader>
+            <DialogTitle>Nowe zamówienie</DialogTitle>
+          </DialogHeader>
+
+          <div className='space-y-3 mt-2'>
+            <div>
+              <Label>Odbiorca</Label>
+              <Select value={quickOrder.odbiorca_id} onValueChange={v => setQuickOrder(p => ({ ...p, odbiorca_id: v ?? '' }))}>
+                <SelectTrigger><SelectValue placeholder='Wybierz odbiorcę' /></SelectTrigger>
+                <SelectContent>
+                  {odbiorcy.map(o => <SelectItem key={o.id} value={String(o.id)}>{odbiorcaName(o)}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Data na kiedy</Label>
+              <Input type='date' value={quickOrder.data_na_kiedy} onChange={e => setQuickOrder(p => ({ ...p, data_na_kiedy: e.target.value }))} />
+            </div>
+
+            <div className='grid grid-cols-2 gap-3'>
+              <div>
+                <Label>Jedynka (duża)</Label>
+                <Input type='number' min='0' value={quickOrder.jedynka_klatki} onChange={e => setQuickOrder(p => ({ ...p, jedynka_klatki: e.target.value }))} placeholder='np. 37' />
+              </div>
+              <div>
+                <Label>Dwójka (mała)</Label>
+                <Input type='number' min='0' value={quickOrder.dwojka_klatki} onChange={e => setQuickOrder(p => ({ ...p, dwojka_klatki: e.target.value }))} placeholder='0' />
+              </div>
+            </div>
+
+            <div className='grid grid-cols-2 gap-3'>
+              <div>
+                <Label>Pęczków w klatce</Label>
+                <Input type='number' min='1' value={quickOrder.peczkow_w_klatce} onChange={e => setQuickOrder(p => ({ ...p, peczkow_w_klatce: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Cena za pęczek (opcjonalnie)</Label>
+                <Input type='number' min='0' step='0.01' value={quickOrder.cena_za_peczek} onChange={e => setQuickOrder(p => ({ ...p, cena_za_peczek: e.target.value }))} />
+              </div>
+            </div>
+
+            <div>
+              <Label>Uwagi</Label>
+              <Textarea value={quickOrder.uwagi} onChange={e => setQuickOrder(p => ({ ...p, uwagi: e.target.value }))} rows={2} />
+            </div>
+
+            <div className='flex gap-2 pt-1'>
+              <Button variant='outline' onClick={() => setQuickOrderOpen(false)} className='flex-1'>Anuluj</Button>
+              <Button onClick={saveQuickOrder} disabled={quickOrderSaving} className='flex-1 bg-purple-600 hover:bg-purple-700'>Zapisz</Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

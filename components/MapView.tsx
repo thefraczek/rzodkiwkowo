@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Folia, Nasiono } from '@/lib/types'
@@ -29,7 +29,7 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
   const [svgRef, setSvgRef] = useState<SVGSVGElement | null>(null)
 
   const [sianie, setSianie] = useState({ nasiona_id: '', uwagi: '' })
-  const [zbior, setZbior] = useState({ ilosc_klatek: '', uwagi: '' })
+  const [zbior, setZbior] = useState({ typ: 'jedynka', ilosc_klatek: '', ilosc_w_klatce: '25', uwagi: '' })
   const [oprysk, setOprysk] = useState({ preparat: '', uwagi: '' })
   const [nawoz, setNawoz] = useState({ nawoz_id: '', ilosc: '', jednostka: 'kg' })
 
@@ -125,10 +125,17 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
 
   async function saveZbior() {
     const today = new Date().toISOString().slice(0, 10)
-    const { error } = await supabase.from('zbiory').insert({ folia_id: selected!.id, data_zbioru: today, ilosc_klatek: zbior.ilosc_klatek ? Number(zbior.ilosc_klatek) : null, uwagi: zbior.uwagi || null })
+    const { error } = await supabase.from('zbiory').insert({
+      folia_id: selected!.id,
+      data_zbioru: today,
+      typ: zbior.typ === 'dwojka' ? 'dwojka' : 'jedynka',
+      ilosc_klatek: zbior.ilosc_klatek ? Number(zbior.ilosc_klatek) : null,
+      ilosc_w_klatce: zbior.ilosc_w_klatce ? Number(zbior.ilosc_w_klatce) : 25,
+      uwagi: zbior.uwagi || null,
+    })
     if (error) { toast.error('Błąd: ' + error.message); return }
     toast.success('Zbiór dodany — ' + selected!.nazwa)
-    setZbior({ ilosc_klatek: '', uwagi: '' }); setAkcja(null); loadInfo(selected!.id)
+    setZbior({ typ: 'jedynka', ilosc_klatek: '', ilosc_w_klatce: '25', uwagi: '' }); setAkcja(null); loadInfo(selected!.id)
   }
 
   async function saveOprysk() {
@@ -317,8 +324,22 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
           <DialogHeader><DialogTitle>🥕 Zbiór — {selected?.nazwa}</DialogTitle></DialogHeader>
           <div className="space-y-4 mt-2">
             <div>
+              <Label>Typ rzodkiewki</Label>
+              <Select value={zbior.typ} onValueChange={v => setZbior(s => ({ ...s, typ: v === 'dwojka' ? 'dwojka' : 'jedynka' }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="jedynka">Jedynka (większa)</SelectItem>
+                  <SelectItem value="dwojka">Dwójka (mniejsza)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
               <Label>Ilość klatek</Label>
               <Input type="number" value={zbior.ilosc_klatek} onChange={e => setZbior(s => ({ ...s, ilosc_klatek: e.target.value }))} min="0" autoFocus />
+            </div>
+            <div>
+              <Label>Pęczków w klatce</Label>
+              <Input type="number" value={zbior.ilosc_w_klatce} onChange={e => setZbior(s => ({ ...s, ilosc_w_klatce: e.target.value }))} min="1" />
             </div>
             <div>
               <Label>Uwagi</Label>
@@ -388,3 +409,4 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
     </div>
   )
 }
+

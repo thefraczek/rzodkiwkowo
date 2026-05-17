@@ -31,6 +31,7 @@ Uruchamiaj je po kolei, rosnąco po wersji:
 4. `V004__zbiory_ilosc_w_klatce.sql`
 5. `V005__zamowienia_rozliczenia.sql`
 6. `V006__zamowienia_klatki_model.sql`
+7. `V007__zbiory_typ.sql`
 
 ## Szybki start
 

@@ -14,17 +14,14 @@ import { type ZamowieniePozycja, serializePozycje, parsePozycjeFromTyp, cratesFr
 
 const today = new Date().toISOString().slice(0, 10)
 
-type FormPozycja = { typ: 'jedynka' | 'dwojka'; klatki: string }
-
-const emptyPozycja = (): FormPozycja => ({ typ: 'jedynka', klatki: '' })
-
 const empty = {
   odbiorca_id: '',
   data_na_kiedy: today,
   peczkow_w_klatce: '25',
   cena_za_peczek: '',
   uwagi: '',
-  pozycje: [emptyPozycja()] as FormPozycja[],
+  jedynka_klatki: '',
+  dwojka_klatki: '0',
 }
 
 function odbiorcaName(o: Odbiorca | undefined) {
@@ -37,10 +34,14 @@ function toNumber(value: string): number | null {
   return Number.isFinite(n) ? n : null
 }
 
-function toModelPozycje(rows: FormPozycja[]): ZamowieniePozycja[] {
-  return rows
-    .map(r => ({ typ: r.typ, klatki: Number(r.klatki) || 0 }))
-    .filter(r => r.klatki > 0)
+function toModelPozycje(jedynkaRaw: string, dwojkaRaw: string): ZamowieniePozycja[] {
+  const jedynka = Number(jedynkaRaw) || 0
+  const dwojka = Number(dwojkaRaw) || 0
+  const pozycje: ZamowieniePozycja[] = [
+    { typ: 'jedynka', klatki: jedynka },
+    { typ: 'dwojka', klatki: dwojka },
+  ]
+  return pozycje.filter(r => r.klatki > 0)
 }
 
 export default function ZamowieniaPage() {
@@ -77,14 +78,15 @@ export default function ZamowieniaPage() {
       peczkow_w_klatce: String(pwk),
       cena_za_peczek: z.cena_za_peczek != null ? String(z.cena_za_peczek) : '',
       uwagi: z.uwagi ?? '',
-      pozycje: parsed.length ? parsed.map(p => ({ typ: p.typ, klatki: String(p.klatki) })) : [emptyPozycja()],
+      jedynka_klatki: String(parsed.find(p => p.typ === 'jedynka')?.klatki ?? ''),
+      dwojka_klatki: String(parsed.find(p => p.typ === 'dwojka')?.klatki ?? 0),
     })
     setEditId(z.id)
     setOpen(true)
   }
 
   const preview = useMemo(() => {
-    const pozycje = toModelPozycje(form.pozycje)
+    const pozycje = toModelPozycje(form.jedynka_klatki, form.dwojka_klatki)
     const totalKlatek = cratesFromPozycje(pozycje)
     const pwk = toNumber(form.peczkow_w_klatce) ?? 25
     const totalPeczkow = totalKlatek * pwk
@@ -92,21 +94,6 @@ export default function ZamowieniaPage() {
     const cena = cenaZa != null ? totalPeczkow * cenaZa : null
     return { pozycje, totalKlatek, totalPeczkow, cena }
   }, [form])
-
-  function updatePozycja(idx: number, patch: Partial<FormPozycja>) {
-    setForm(f => ({
-      ...f,
-      pozycje: f.pozycje.map((p, i) => i === idx ? { ...p, ...patch } : p),
-    }))
-  }
-
-  function addPozycja() {
-    setForm(f => ({ ...f, pozycje: [...f.pozycje, emptyPozycja()] }))
-  }
-
-  function removePozycja(idx: number) {
-    setForm(f => ({ ...f, pozycje: f.pozycje.filter((_, i) => i !== idx) || [emptyPozycja()] }))
-  }
 
   async function save() {
     if (!form.odbiorca_id || preview.totalKlatek <= 0) {
@@ -228,27 +215,14 @@ export default function ZamowieniaPage() {
               <Input type='date' value={form.data_na_kiedy} onChange={e => setForm(p => ({ ...p, data_na_kiedy: e.target.value }))} />
             </div>
 
-            <div>
-              <div className='flex items-center justify-between mb-1'>
-                <Label>Pozycje</Label>
-                <Button type='button' variant='outline' size='sm' onClick={addPozycja}>+ Dodaj typ</Button>
+            <div className='grid grid-cols-2 gap-3'>
+              <div>
+                <Label>Jedynka (duża)</Label>
+                <Input type='number' min='0' value={form.jedynka_klatki} onChange={e => setForm(p => ({ ...p, jedynka_klatki: e.target.value }))} placeholder='np. 37' />
               </div>
-              <div className='space-y-2'>
-                {form.pozycje.map((p, idx) => (
-                  <div key={idx} className='grid grid-cols-[1fr_1fr_auto] gap-2'>
-                    <Select value={p.typ} onValueChange={v => updatePozycja(idx, { typ: (v === 'dwojka' ? 'dwojka' : 'jedynka') })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value='jedynka'>Jedynka (duża)</SelectItem>
-                        <SelectItem value='dwojka'>Dwójka (mała)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Input type='number' min='0' value={p.klatki} onChange={e => updatePozycja(idx, { klatki: e.target.value })} placeholder='Klatek' />
-                    {form.pozycje.length > 1 && (
-                      <Button type='button' variant='ghost' size='icon-sm' onClick={() => removePozycja(idx)}>✕</Button>
-                    )}
-                  </div>
-                ))}
+              <div>
+                <Label>Dwójka (mała)</Label>
+                <Input type='number' min='0' value={form.dwojka_klatki} onChange={e => setForm(p => ({ ...p, dwojka_klatki: e.target.value }))} placeholder='0' />
               </div>
             </div>
 
@@ -264,6 +238,8 @@ export default function ZamowieniaPage() {
             </div>
 
             <div className='rounded-xl border border-purple-200 bg-purple-50 px-4 py-2.5 text-sm text-purple-900'>
+              <div><b>Jedynka:</b> {Number(form.jedynka_klatki) || 0} klatek</div>
+              <div><b>Dwójka:</b> {Number(form.dwojka_klatki) || 0} klatek</div>
               <div><b>Razem:</b> {preview.totalKlatek} klatek</div>
               <div><b>Pęczków:</b> {preview.totalPeczkow}</div>
               {preview.cena != null && <div><b>Cena:</b> {preview.cena.toFixed(2)} zł</div>}

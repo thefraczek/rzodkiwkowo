@@ -11,7 +11,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 
-const empty = { folia_id: '', data_zbioru: '', ilosc_klatek: '', ilosc_w_klatce: '', uwagi: '' }
+const empty = { folia_id: '', data_zbioru: '', typ: 'jedynka', ilosc_klatek: '', ilosc_w_klatce: '25', uwagi: '' }
+
+function typLabel(typ: Zbior['typ']) {
+  return typ === 'dwojka' ? 'Dwójka' : 'Jedynka'
+}
 
 function peczki(klatek: number | null, wKlatce: number | null): number | null {
   if (!klatek || !wKlatce) return null
@@ -37,7 +41,7 @@ export default function ZbioryPage() {
   useEffect(() => { load() }, [])
 
   function openNew() {
-    setForm({ ...empty, data_zbioru: new Date().toISOString().slice(0, 10), ilosc_w_klatce: '25' })
+    setForm({ ...empty, data_zbioru: new Date().toISOString().slice(0, 10) })
     setEditId(null)
     setOpen(true)
   }
@@ -46,8 +50,9 @@ export default function ZbioryPage() {
     setForm({
       folia_id: String(z.folia_id ?? ''),
       data_zbioru: z.data_zbioru,
+      typ: z.typ === 'dwojka' ? 'dwojka' : 'jedynka',
       ilosc_klatek: String(z.ilosc_klatek ?? ''),
-      ilosc_w_klatce: String(z.ilosc_w_klatce ?? ''),
+      ilosc_w_klatce: String(z.ilosc_w_klatce ?? 25),
       uwagi: z.uwagi ?? '',
     })
     setEditId(z.id)
@@ -58,8 +63,9 @@ export default function ZbioryPage() {
     const payload = {
       folia_id: form.folia_id ? Number(form.folia_id) : null,
       data_zbioru: form.data_zbioru,
+      typ: form.typ === 'dwojka' ? 'dwojka' : 'jedynka',
       ilosc_klatek: form.ilosc_klatek ? Number(form.ilosc_klatek) : null,
-      ilosc_w_klatce: form.ilosc_w_klatce ? Number(form.ilosc_w_klatce) : null,
+      ilosc_w_klatce: form.ilosc_w_klatce ? Number(form.ilosc_w_klatce) : 25,
       uwagi: form.uwagi || null,
     }
 
@@ -90,6 +96,8 @@ export default function ZbioryPage() {
 
   const totalKlatki = zbiory.reduce((s, z) => s + (z.ilosc_klatek ?? 0), 0)
   const totalPeczki = zbiory.reduce((s, z) => s + (peczki(z.ilosc_klatek, z.ilosc_w_klatce) ?? 0), 0)
+  const totalJedynki = zbiory.reduce((s, z) => s + ((z.typ !== 'dwojka' ? z.ilosc_klatek : 0) ?? 0), 0)
+  const totalDwojki = zbiory.reduce((s, z) => s + ((z.typ === 'dwojka' ? z.ilosc_klatek : 0) ?? 0), 0)
   const formPeczki = form.ilosc_klatek && form.ilosc_w_klatce
     ? Number(form.ilosc_klatek) * Number(form.ilosc_w_klatce)
     : null
@@ -102,6 +110,8 @@ export default function ZbioryPage() {
           {totalKlatki > 0 && (
             <p className='text-sm text-gray-500'>
               Łącznie: {totalKlatki} kl.
+              {totalJedynki > 0 && <span> · Jedynka: {totalJedynki} kl.</span>}
+              {totalDwojki > 0 && <span> · Dwójka: {totalDwojki} kl.</span>}
               {totalPeczki > 0 && <span> · {totalPeczki} pęczków</span>}
             </p>
           )}
@@ -129,6 +139,7 @@ export default function ZbioryPage() {
                 <p className='font-semibold text-gray-900'>{(z.folie as any)?.nazwa ?? '—'}</p>
                 <p className='text-sm text-gray-500'>
                   {z.data_zbioru}
+                  <span className='text-gray-400'> · {typLabel(z.typ)}</span>
                   {z.ilosc_w_klatce != null && (
                     <span className='text-gray-400'> · {z.ilosc_w_klatce} szt./kl.</span>
                   )}
@@ -165,6 +176,16 @@ export default function ZbioryPage() {
               <Select value={form.folia_id} onValueChange={v => setForm(f => ({ ...f, folia_id: v ?? '' }))}>
                 <SelectTrigger><SelectValue placeholder='Wybierz folię' /></SelectTrigger>
                 <SelectContent>{folie.map(fl => <SelectItem key={fl.id} value={String(fl.id)}>{fl.nazwa}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Typ rzodkiewki</Label>
+              <Select value={form.typ} onValueChange={v => setForm(f => ({ ...f, typ: v === 'dwojka' ? 'dwojka' : 'jedynka' }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='jedynka'>Jedynka (większa)</SelectItem>
+                  <SelectItem value='dwojka'>Dwójka (mniejsza)</SelectItem>
+                </SelectContent>
               </Select>
             </div>
             <div className='grid grid-cols-2 gap-3'>

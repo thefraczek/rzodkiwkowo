@@ -8,13 +8,13 @@ import { useFontSize } from './FontSizeProvider'
 
 const primary = [
   { href: '/', icon: '🏠', label: 'Pulpit' },
+  { href: '/zamowienia', icon: '📦', label: 'Zamówienia' },
   { href: '/zbiory', icon: '🥕', label: 'Zbiory' },
-  { href: '/dostawy', icon: '🚚', label: 'Dostawy' },
   { href: '/sianie', icon: '🌱', label: 'Sianie' },
 ]
 
 const moreOperacyjne = [
-  { href: '/zamowienia', icon: '📦', label: 'Zamówienia' },
+  { href: '/dostawy', icon: '🚚', label: 'Dostawy' },
   { href: '/opryski', icon: '💧', label: 'Opryski' },
   { href: '/nawozy', icon: '🌿', label: 'Nawozy' },
 ]

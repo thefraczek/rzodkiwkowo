@@ -40,6 +40,7 @@ export type Zbior = {
   id: number
   folia_id: number | null
   data_zbioru: string
+  typ: 'jedynka' | 'dwojka' | null
   ilosc_klatek: number | null
   ilosc_w_klatce: number | null
   uwagi: string | null

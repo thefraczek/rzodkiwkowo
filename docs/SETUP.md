@@ -12,6 +12,7 @@
    - `V004__zbiory_ilosc_w_klatce.sql`
    - `V005__zamowienia_rozliczenia.sql`
    - `V006__zamowienia_klatki_model.sql`
+   - `V007__zbiory_typ.sql`
 5. W lewym menu kliknij **Settings > API** i skopiuj:
    - **Project URL**
    - **anon public key**
