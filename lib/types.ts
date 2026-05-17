@@ -1,4 +1,4 @@
-export type Odbiorca = {
+﻿export type Odbiorca = {
   id: number
   imie: string | null
   nazwisko: string | null
@@ -57,11 +57,11 @@ export type Zamowienie = {
   ilosc_w_klatce: number | null
   cena_za_peczek: number | null
   cena_calkowita: number | null
-  uwagi: string | null
-  wydane: boolean
+  wydane: boolean | null
   data_wydania: string | null
   puste_zwrocono: number | null
   zaplacono_kwota: number | null
+  uwagi: string | null
   odbiorcy?: Odbiorca
 }
 

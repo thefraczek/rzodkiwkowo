@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+﻿# Rzodkiewkowo
 
-## Getting Started
+Aplikacja do zarządzania produkcją i dostawami rzodkiewki (folie, zasiewy, zbiory, zamówienia, dostawy, bilans skrzynek) oparta o Next.js + Supabase.
 
-First, run the development server:
+## Struktura dokumentacji
+
+W katalogu głównym zostaje tylko ten plik (`README.md`).
+Wszystkie pozostałe dokumenty są w `docs/`.
+
+### Dokumenty projektowe
+
+- Setup i uruchomienie: `docs/SETUP.md`
+- Standard bazy danych: `docs/DB_STANDARD.md`
+- Checklista repo/commitów: `docs/REPO_CHECKLIST.md`
+- Zasady migracji SQL: `docs/MIGRATIONS.md`
+
+### Dokumenty dla agentów AI
+
+- Główne reguły agenta: `docs/ai/AGENTS.md`
+- Kontekst dla Claude: `docs/ai/CLAUDE.md`
+
+## Baza danych (migracje)
+
+Migracje są w katalogu: `db/migrations/`.
+
+Uruchamiaj je po kolei, rosnąco po wersji:
+
+1. `V001__schema.sql`
+2. `V002__rls.sql`
+3. `V003__folie_mapa_columns.sql`
+4. `V004__zbiory_ilosc_w_klatce.sql`
+5. `V005__zamowienia_rozliczenia.sql`
+6. `V006__zamowienia_klatki_model.sql`
+
+## Szybki start
+
+1. Uzupełnij `.env.local` na podstawie `.env.local.example`
+2. Uruchom:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+3. Otwórz `http://localhost:3000`
