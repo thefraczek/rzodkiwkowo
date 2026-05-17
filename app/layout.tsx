@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+﻿import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
@@ -11,7 +11,7 @@ import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "Rzodkiewkowo",
-  description: "Zarządzanie folii i zbiorów",
+  description: "Zarządzanie foliami i zbiorami",
   manifest: "/manifest.json",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "Rzodkiewkowo" },
 };
@@ -41,3 +41,5 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
+
+
