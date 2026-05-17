@@ -329,6 +329,14 @@ export default function Home() {
         </Button>
       </div>
 
+      <div className='bg-white border rounded-2xl p-4'>
+        <div className='mb-3'>
+          <h2 className='font-semibold text-gray-800'>Mapa folii</h2>
+          <p className='text-sm text-gray-500'>Kliknij folię, żeby od razu dodać zasiew, zbiór, oprysk albo nawóz.</p>
+        </div>
+        <MapView />
+      </div>
+
       <div className='bg-white border rounded-2xl overflow-hidden'>
         <div className='px-4 py-3 border-b bg-purple-50 flex items-center gap-3'>
           <span className='text-xl'>📦</span>
@@ -485,11 +493,6 @@ export default function Home() {
             <Button className='w-full bg-green-600 hover:bg-green-700' onClick={saveSianie} disabled={!sianieFolia || sianieSaving}>Dodaj zasiew</Button>
           </div>
         </div>
-      </div>
-
-      <div>
-        <h2 className='font-semibold text-gray-800 mb-2'>Mapa folii</h2>
-        <MapView />
       </div>
 
       <Dialog open={wydajOpen} onOpenChange={setWydajOpen}>

@@ -16,7 +16,7 @@ type Info = { ostatnieSianie: string | null; ostatniZbior: string | null; klatek
 
 const KOLORY = ['#86efac', '#fde68a', '#fdba74', '#a5b4fc', '#f9a8d4', '#67e8f9', '#d1d5db']
 const SVG_W = 900
-const SVG_H = 600
+const SVG_H = 1000
 
 export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allowEdit?: boolean; reloadSignal?: number }) {
   const [folie, setFolie] = useState<Folia[]>([])
@@ -27,6 +27,7 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
   const [nawozy, setNawozy] = useState<{ id: number; nazwa: string }[]>([])
   const [editMode, setEditMode] = useState(false)
   const [dragging, setDragging] = useState<{ id: number; startX: number; startY: number; origX: number; origY: number } | null>(null)
+  const [dragMoved, setDragMoved] = useState(false)
   const [svgRef, setSvgRef] = useState<SVGSVGElement | null>(null)
 
   const [sianie, setSianie] = useState({ nasiona_id: '', uwagi: '' })
@@ -78,6 +79,7 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
     e.preventDefault()
     const pt = getSvgPoint(e)
     if (!pt) return
+    setDragMoved(false)
     setDragging({ id: f.id, startX: pt.x, startY: pt.y, origX: f.pos_x, origY: f.pos_y })
   }
 
@@ -87,6 +89,7 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
     if (!pt) return
     const dx = Math.round(pt.x - dragging.startX)
     const dy = Math.round(pt.y - dragging.startY)
+    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) setDragMoved(true)
     setFolie(prev => prev.map(f => f.id === dragging.id
       ? { ...f, pos_x: Math.max(0, dragging.origX + dx), pos_y: Math.max(0, dragging.origY + dy) }
       : f
@@ -212,7 +215,15 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
                   strokeDasharray={editMode && selected?.id !== f.id ? '6 3' : undefined}
                   style={{ cursor: editMode ? 'grab' : 'pointer' }}
                   onMouseDown={e => onMouseDown(e, f)}
-                  onClick={() => editMode ? (setSelected(f), setAkcja(null)) : selectFolia(f)}
+                  onClick={() => {
+                    if (editMode) {
+                      if (dragMoved) return
+                      setSelected(f)
+                      setAkcja(null)
+                      return
+                    }
+                    selectFolia(f)
+                  }}
                 />
                 <text
                   x={f.pos_x + f.szerokosc / 2}

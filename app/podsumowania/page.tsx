@@ -23,6 +23,7 @@ type WeeklyMeters = {
   label: string
   relativeLabel: string
   meters: number
+  folieCount: number
 }
 
 const MS_DAY = 24 * 60 * 60 * 1000
@@ -69,6 +70,7 @@ function buildWeekBuckets(weeks: number): WeeklyMeters[] {
       label: new Intl.DateTimeFormat('pl-PL', { day: '2-digit', month: '2-digit' }).format(date),
       relativeLabel,
       meters: 0,
+      folieCount: 0,
     }
   })
 }
@@ -108,7 +110,7 @@ export default function PodsumowaniaPage() {
       supabase.from('sianie').select('id', { count: 'exact', head: true }),
       supabase.from('zbiory').select('data_zbioru').gte('data_zbioru', activityStart).lte('data_zbioru', activityEnd),
       supabase.from('zamowienia').select('data_na_kiedy').gte('data_na_kiedy', activityStart).lte('data_na_kiedy', activityEnd),
-      supabase.from('sianie').select('data, folie(metry_kwadratowe)').gte('data', firstWeekStart).lte('data', today),
+      supabase.from('sianie').select('data, folia_id, folie(metry_kwadratowe)').gte('data', firstWeekStart).lte('data', today),
     ])
 
     const totalMeters = (folieRows.data ?? []).reduce((sum, row: any) => sum + Number(row.metry_kwadratowe ?? 0), 0)
@@ -138,12 +140,26 @@ export default function PodsumowaniaPage() {
     }
 
     const weeklyMap = new Map(weekBuckets.map(week => [week.weekStart, { ...week }]))
+    const weeklyFoils = new Map<string, Set<number>>()
+
     for (const row of weeklySowingRows.data ?? []) {
       if (!row.data) continue
+
       const weekStart = toIsoDate(startOfWeek(new Date(row.data)))
       const folia = Array.isArray((row as any).folie) ? (row as any).folie[0] : (row as any).folie
       const meters = Number(folia?.metry_kwadratowe ?? 0)
+
       if (weeklyMap.has(weekStart)) weeklyMap.get(weekStart)!.meters += meters
+
+      const foliaId = row.folia_id
+      if (foliaId && weeklyMap.has(weekStart)) {
+        if (!weeklyFoils.has(weekStart)) weeklyFoils.set(weekStart, new Set<number>())
+        weeklyFoils.get(weekStart)!.add(foliaId)
+      }
+    }
+
+    for (const [weekStart, ids] of weeklyFoils.entries()) {
+      if (weeklyMap.has(weekStart)) weeklyMap.get(weekStart)!.folieCount = ids.size
     }
 
     setActivity(Array.from(activityMap.values()))
@@ -164,6 +180,7 @@ export default function PodsumowaniaPage() {
   const maxActivityValue = Math.max(1, ...activity.flatMap(day => [day.zbiory, day.zamowienia]))
   const maxWeeklyMeters = Math.max(1, ...weeklyMeters.map(week => week.meters))
   const currentWeekMeters = weeklyMeters[weeklyMeters.length - 1]?.meters ?? 0
+  const currentWeekFolie = weeklyMeters[weeklyMeters.length - 1]?.folieCount ?? 0
 
   return (
     <div className='space-y-5'>
@@ -190,9 +207,15 @@ export default function PodsumowaniaPage() {
             <h2 className='font-semibold text-gray-800'>Zasiane m² w 6 tygodni</h2>
             <p className='text-xs text-emerald-700'>Liczone według powierzchni przypisanej do folii przy każdym zasiewie.</p>
           </div>
-          <div className='rounded-xl bg-white border border-emerald-200 px-3 py-2 text-right shrink-0'>
-            <div className='text-[11px] text-gray-500'>Ten tydzień</div>
-            <div className='text-lg font-bold text-emerald-700'>{currentWeekMeters} m²</div>
+          <div className='flex gap-2 shrink-0'>
+            <div className='rounded-xl bg-white border border-emerald-200 px-3 py-2 text-right'>
+              <div className='text-[11px] text-gray-500'>Ten tydzień</div>
+              <div className='text-lg font-bold text-emerald-700'>{currentWeekMeters} m²</div>
+            </div>
+            <div className='rounded-xl bg-white border border-emerald-200 px-3 py-2 text-right'>
+              <div className='text-[11px] text-gray-500'>Folie zasiane</div>
+              <div className='text-lg font-bold text-emerald-700'>{currentWeekFolie}</div>
+            </div>
           </div>
         </div>
 
@@ -200,7 +223,7 @@ export default function PodsumowaniaPage() {
           <div className='px-4 py-5'>
             <div className='flex items-end gap-3 overflow-x-auto pb-2'>
               {weeklyMeters.map(week => (
-                <div key={week.weekStart} className='min-w-[78px] flex-1'>
+                <div key={week.weekStart} className='min-w-[90px] flex-1'>
                   <div className='h-44 flex items-end justify-center rounded-xl bg-emerald-50 px-3 py-3'>
                     <div
                       className='w-8 rounded-t-lg bg-emerald-500'
@@ -211,6 +234,7 @@ export default function PodsumowaniaPage() {
                   <div className='mt-2 text-center text-[11px] font-medium text-gray-600'>{week.relativeLabel}</div>
                   <div className='mt-0.5 text-center text-xs text-gray-400'>od {week.label}</div>
                   <div className='mt-1 text-center text-sm font-semibold text-emerald-700'>{week.meters} m²</div>
+                  <div className='text-center text-[11px] text-gray-500'>{week.folieCount} folii</div>
                 </div>
               ))}
             </div>
