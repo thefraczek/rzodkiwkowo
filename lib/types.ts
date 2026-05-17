@@ -12,6 +12,7 @@ export type Folia = {
   id: number
   nazwa: string
   data_nalozenia: string | null
+  metry_kwadratowe: number | null
   pos_x: number
   pos_y: number
   szerokosc: number

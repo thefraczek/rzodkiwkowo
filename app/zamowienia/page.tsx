@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { type ZamowieniePozycja, serializePozycje, parsePozycjeFromTyp, cratesFromPozycje, formatPozycje } from '@/lib/order-lines'
+import { formatDatePL } from '@/lib/date'
 
 const today = new Date().toISOString().slice(0, 10)
 
@@ -18,7 +19,6 @@ const empty = {
   odbiorca_id: '',
   data_na_kiedy: today,
   peczkow_w_klatce: '25',
-  cena_za_peczek: '',
   uwagi: '',
   jedynka_klatki: '',
   dwojka_klatki: '0',
@@ -76,7 +76,6 @@ export default function ZamowieniaPage() {
       odbiorca_id: String(z.odbiorca_id ?? ''),
       data_na_kiedy: z.data_na_kiedy ?? today,
       peczkow_w_klatce: String(pwk),
-      cena_za_peczek: z.cena_za_peczek != null ? String(z.cena_za_peczek) : '',
       uwagi: z.uwagi ?? '',
       jedynka_klatki: String(parsed.find(p => p.typ === 'jedynka')?.klatki ?? ''),
       dwojka_klatki: String(parsed.find(p => p.typ === 'dwojka')?.klatki ?? 0),
@@ -90,9 +89,7 @@ export default function ZamowieniaPage() {
     const totalKlatek = cratesFromPozycje(pozycje)
     const pwk = toNumber(form.peczkow_w_klatce) ?? 25
     const totalPeczkow = totalKlatek * pwk
-    const cenaZa = toNumber(form.cena_za_peczek)
-    const cena = cenaZa != null ? totalPeczkow * cenaZa : null
-    return { pozycje, totalKlatek, totalPeczkow, cena }
+    return { pozycje, totalKlatek, totalPeczkow }
   }, [form])
 
   async function save() {
@@ -102,16 +99,14 @@ export default function ZamowieniaPage() {
     }
 
     const pwk = toNumber(form.peczkow_w_klatce) ?? 25
-    const cenaZaPeczek = toNumber(form.cena_za_peczek)
-
     const payload = {
       odbiorca_id: Number(form.odbiorca_id),
       data_na_kiedy: form.data_na_kiedy || null,
       ilosc: preview.totalPeczkow,
       ilosc_w_klatce: pwk,
       typ: serializePozycje(preview.pozycje),
-      cena_za_peczek: cenaZaPeczek,
-      cena_calkowita: cenaZaPeczek != null ? Number((preview.totalPeczkow * cenaZaPeczek).toFixed(2)) : null,
+      cena_za_peczek: null,
+      cena_calkowita: null,
       uwagi: form.uwagi || null,
     }
 
@@ -167,7 +162,7 @@ export default function ZamowieniaPage() {
               <div className='flex-1 min-w-0'>
                 <p className='font-semibold text-gray-900'>{odbiorcaName((z as any).odbiorcy)}</p>
                 <p className='text-sm text-gray-500'>
-                  {z.data_na_kiedy ?? 'bez daty'}
+                  {z.data_na_kiedy ? formatDatePL(z.data_na_kiedy) : 'bez daty'}
                   <span className='text-gray-400'> · </span>
                   {formatPozycje(pozycje)}
                   <span className='text-gray-400'> · </span>
@@ -226,15 +221,9 @@ export default function ZamowieniaPage() {
               </div>
             </div>
 
-            <div className='grid grid-cols-2 gap-3'>
-              <div>
-                <Label>Pęczków w klatce</Label>
-                <Input type='number' min='1' value={form.peczkow_w_klatce} onChange={e => setForm(p => ({ ...p, peczkow_w_klatce: e.target.value }))} />
-              </div>
-              <div>
-                <Label>Cena za pęczek (opcjonalnie)</Label>
-                <Input type='number' step='0.01' min='0' value={form.cena_za_peczek} onChange={e => setForm(p => ({ ...p, cena_za_peczek: e.target.value }))} />
-              </div>
+            <div>
+              <Label>Pęczków w klatce</Label>
+              <Input type='number' min='1' value={form.peczkow_w_klatce} onChange={e => setForm(p => ({ ...p, peczkow_w_klatce: e.target.value }))} />
             </div>
 
             <div className='rounded-xl border border-purple-200 bg-purple-50 px-4 py-2.5 text-sm text-purple-900'>
@@ -242,7 +231,6 @@ export default function ZamowieniaPage() {
               <div><b>Dwójka:</b> {Number(form.dwojka_klatki) || 0} klatek</div>
               <div><b>Razem:</b> {preview.totalKlatek} klatek</div>
               <div><b>Pęczków:</b> {preview.totalPeczkow}</div>
-              {preview.cena != null && <div><b>Cena:</b> {preview.cena.toFixed(2)} zł</div>}
             </div>
 
             <div>

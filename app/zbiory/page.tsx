@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { formatDatePL } from '@/lib/date'
 
 const empty = { folia_id: '', data_zbioru: '', typ: 'jedynka', ilosc_klatek: '', ilosc_w_klatce: '25', uwagi: '' }
 
@@ -138,7 +139,7 @@ export default function ZbioryPage() {
               <div className='flex-1 min-w-0'>
                 <p className='font-semibold text-gray-900'>{(z.folie as any)?.nazwa ?? '—'}</p>
                 <p className='text-sm text-gray-500'>
-                  {z.data_zbioru}
+                  {formatDatePL(z.data_zbioru)}
                   <span className='text-gray-400'> · {typLabel(z.typ)}</span>
                   {z.ilosc_w_klatce != null && (
                     <span className='text-gray-400'> · {z.ilosc_w_klatce} szt./kl.</span>

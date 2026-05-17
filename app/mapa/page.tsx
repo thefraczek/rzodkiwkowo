@@ -1,4 +1,5 @@
 'use client'
+
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Folia } from '@/lib/types'
@@ -8,8 +9,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import MapView from '@/components/MapView'
+import { formatDatePL } from '@/lib/date'
 
-const empty = { nazwa: '', data_nalozenia: '', szerokosc: '160', wysokosc: '80' }
+const empty = { nazwa: '', data_nalozenia: '', metry_kwadratowe: '', szerokosc: '160', wysokosc: '80' }
 
 export default function MapaPage() {
   const [folie, setFolie] = useState<Folia[]>([])
@@ -25,18 +27,42 @@ export default function MapaPage() {
 
   useEffect(() => { load() }, [])
 
-  function openNew() { setForm(empty); setEditId(null); setOpen(true) }
+  function openNew() {
+    setForm(empty)
+    setEditId(null)
+    setOpen(true)
+  }
+
   function openEdit(f: Folia) {
-    setForm({ nazwa: f.nazwa, data_nalozenia: f.data_nalozenia ?? '', szerokosc: String(f.szerokosc), wysokosc: String(f.wysokosc) })
-    setEditId(f.id); setOpen(true)
+    setForm({
+      nazwa: f.nazwa,
+      data_nalozenia: f.data_nalozenia ?? '',
+      metry_kwadratowe: f.metry_kwadratowe != null ? String(f.metry_kwadratowe) : '',
+      szerokosc: String(f.szerokosc),
+      wysokosc: String(f.wysokosc),
+    })
+    setEditId(f.id)
+    setOpen(true)
   }
 
   async function save() {
-    const payload = { nazwa: form.nazwa, data_nalozenia: form.data_nalozenia || null, szerokosc: form.szerokosc ? Number(form.szerokosc) : 160, wysokosc: form.wysokosc ? Number(form.wysokosc) : 80 }
+    const payload = {
+      nazwa: form.nazwa,
+      data_nalozenia: form.data_nalozenia || null,
+      metry_kwadratowe: form.metry_kwadratowe ? Number(form.metry_kwadratowe) : null,
+      szerokosc: form.szerokosc ? Number(form.szerokosc) : 160,
+      wysokosc: form.wysokosc ? Number(form.wysokosc) : 80,
+    }
+
     const { error } = editId
       ? await supabase.from('folie').update(payload).eq('id', editId)
       : await supabase.from('folie').insert(payload)
-    if (error) { toast.error('Nie udało się zapisać: ' + error.message); return }
+
+    if (error) {
+      toast.error('Nie udało się zapisać: ' + error.message)
+      return
+    }
+
     toast.success(editId ? 'Folia zaktualizowana' : 'Folia dodana')
     setOpen(false)
     load()
@@ -46,7 +72,10 @@ export default function MapaPage() {
   async function remove(id: number) {
     if (!confirm('Usunąć folię?')) return
     const { error } = await supabase.from('folie').delete().eq('id', id)
-    if (error) { toast.error('Nie udało się usunąć: ' + error.message); return }
+    if (error) {
+      toast.error('Nie udało się usunąć: ' + error.message)
+      return
+    }
     toast.success('Folia usunięta')
     load()
     setMapSignal(s => s + 1)
@@ -54,13 +83,11 @@ export default function MapaPage() {
 
   return (
     <div className="space-y-6">
-      {/* Mapa */}
       <div>
         <h1 className="text-xl font-bold text-gray-900 mb-3">Folie</h1>
         <MapView allowEdit reloadSignal={mapSignal} />
       </div>
 
-      {/* Lista folii */}
       <div>
         <div className="flex justify-between items-center mb-3">
           <h2 className="text-base font-semibold text-gray-700">Folie ({folie.length})</h2>
@@ -77,8 +104,9 @@ export default function MapaPage() {
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-gray-900">{f.nazwa}</p>
                 <p className="text-sm text-gray-500">
+                  {f.metry_kwadratowe != null && <span>{f.metry_kwadratowe} m² · </span>}
                   {f.szerokosc} × {f.wysokosc} px
-                  {f.data_nalozenia && <span> · Od {f.data_nalozenia}</span>}
+                  {f.data_nalozenia && <span> · Od {formatDatePL(f.data_nalozenia)}</span>}
                 </p>
               </div>
               <div className="flex gap-1 shrink-0">
@@ -105,6 +133,18 @@ export default function MapaPage() {
             <div>
               <Label>Data nałożenia</Label>
               <Input type="date" value={form.data_nalozenia} onChange={e => setForm(f => ({ ...f, data_nalozenia: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Metry kwadratowe</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                value={form.metry_kwadratowe}
+                onChange={e => setForm(f => ({ ...f, metry_kwadratowe: e.target.value }))}
+                placeholder="np. 120"
+                min="0"
+                step="0.01"
+              />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

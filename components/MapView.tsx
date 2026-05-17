@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { formatDatePL } from '@/lib/date'
 
 type Akcja = 'sianie' | 'zbior' | 'oprysk' | 'nawoz' | null
 type Info = { ostatnieSianie: string | null; ostatniZbior: string | null; klatek: number }
@@ -237,8 +238,9 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
           <DialogHeader><DialogTitle>{selected?.nazwa}</DialogTitle></DialogHeader>
           {info && (
             <div className="text-sm text-gray-500 space-y-1 mb-1 border-b pb-3">
-              {info.ostatnieSianie && <p>Ostatnie sianie: <span className="font-medium text-gray-700">{info.ostatnieSianie}</span></p>}
-              {info.ostatniZbior && <p>Ostatni zbiór: <span className="font-medium text-gray-700">{info.ostatniZbior}</span></p>}
+              {selected?.metry_kwadratowe != null && <p>Powierzchnia: <span className="font-medium text-gray-700">{selected.metry_kwadratowe} m²</span></p>}
+              {info.ostatnieSianie && <p>Ostatnie sianie: <span className="font-medium text-gray-700">{formatDatePL(info.ostatnieSianie)}</span></p>}
+              {info.ostatniZbior && <p>Ostatni zbiór: <span className="font-medium text-gray-700">{formatDatePL(info.ostatniZbior)}</span></p>}
               {info.klatek > 0 && <p>Łącznie klatek: <span className="font-medium text-gray-700">{info.klatek}</span></p>}
             </div>
           )}

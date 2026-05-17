@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { formatDatePL } from '@/lib/date'
 
 const empty = { folia_id: '', data: '', preparat: '', uwagi: '' }
 
@@ -74,7 +75,7 @@ export default function OpryszkiPage() {
                 {(o.folie as any)?.nazwa ?? '—'}
                 {o.preparat && <span className="font-normal text-gray-500"> · {o.preparat}</span>}
               </p>
-              <p className="text-sm text-gray-500">{o.data}</p>
+              <p className="text-sm text-gray-500">{formatDatePL(o.data)}</p>
               {o.uwagi && <p className="text-xs text-gray-400 mt-0.5 truncate">{o.uwagi}</p>}
             </div>
             <div className="flex gap-1 shrink-0">

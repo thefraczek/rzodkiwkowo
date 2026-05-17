@@ -12,8 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import MapView from '@/components/MapView'
 import { parsePozycjeFromTyp, cratesFromPozycje, formatPozycje, serializePozycje } from '@/lib/order-lines'
+import { formatDatePL } from '@/lib/date'
 
-type Stats = { folie: number; zbiory_dzis: number; zbiory_tydzien: number; zamowienia: number; sianie: number }
+type UpcomingSummary = { date: string; jedynka: number; dwojka: number; ordersCount: number } | null
 
 const today = new Date().toISOString().slice(0, 10)
 const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
@@ -33,11 +34,18 @@ function peczkiForOrder(z: Zamowienie): number {
   return crates * pwk
 }
 
+function formatDateWithWeekdayPL(value: string): string {
+  const [year, month, day] = value.split('-').map(Number)
+  const date = new Date(year, (month || 1) - 1, day || 1)
+  const weekday = new Intl.DateTimeFormat('pl-PL', { weekday: 'long' }).format(date)
+  return `${weekday}, ${formatDatePL(value)}`
+}
+
 export default function Home() {
-  const [stats, setStats] = useState<Stats>({ folie: 0, zbiory_dzis: 0, zbiory_tydzien: 0, zamowienia: 0, sianie: 0 })
   const [folie, setFolie] = useState<Folia[]>([])
   const [nasiona, setNasiona] = useState<{ id: number; nazwa: string }[]>([])
   const [odbiorcy, setOdbiorcy] = useState<Odbiorca[]>([])
+  const [upcomingSummary, setUpcomingSummary] = useState<UpcomingSummary>(null)
 
   const [quickOrderOpen, setQuickOrderOpen] = useState(false)
   const [quickOrderSaving, setQuickOrderSaving] = useState(false)
@@ -47,7 +55,6 @@ export default function Home() {
     jedynka_klatki: '',
     dwojka_klatki: '0',
     peczkow_w_klatce: '25',
-    cena_za_peczek: '',
     uwagi: '',
   })
 
@@ -73,12 +80,8 @@ export default function Home() {
   const [wydajZaplacono, setWydajZaplacono] = useState('')
 
   async function load() {
-    const [f, zd, zt, zam, s, n, o] = await Promise.all([
+    const [f, n, o] = await Promise.all([
       supabase.from('folie').select('*').order('nazwa'),
-      supabase.from('zbiory').select('id', { count: 'exact', head: true }).eq('data_zbioru', today),
-      supabase.from('zbiory').select('id', { count: 'exact', head: true }).gte('data_zbioru', weekAgo),
-      supabase.from('zamowienia').select('id', { count: 'exact', head: true }),
-      supabase.from('sianie').select('id', { count: 'exact', head: true }),
       supabase.from('nasiona').select('*').order('nazwa'),
       supabase.from('odbiorcy').select('*').order('ksywa'),
     ])
@@ -86,13 +89,6 @@ export default function Home() {
     setFolie((f.data as Folia[]) ?? [])
     setNasiona((n.data as { id: number; nazwa: string }[]) ?? [])
     setOdbiorcy((o.data as Odbiorca[]) ?? [])
-    setStats({
-      folie: f.data?.length ?? 0,
-      zbiory_dzis: zd.count ?? 0,
-      zbiory_tydzien: zt.count ?? 0,
-      zamowienia: zam.count ?? 0,
-      sianie: s.count ?? 0,
-    })
   }
 
   async function loadOrders(date: string) {
@@ -110,9 +106,48 @@ export default function Home() {
     setIssuedHistory((issued.data as Zamowienie[]) ?? [])
   }
 
+  async function loadUpcomingSummary() {
+    const { data, error } = await supabase
+      .from('zamowienia')
+      .select('*')
+      .gte('data_na_kiedy', today)
+      .order('data_na_kiedy', { ascending: true })
+      .order('data_utworzenia', { ascending: true })
+
+    if (error) {
+      toast.error('Błąd podsumowania zamówień: ' + error.message)
+      return
+    }
+
+    const pending = ((data as Zamowienie[]) ?? []).filter(z => !z.wydane && !!z.data_na_kiedy)
+    if (!pending.length) {
+      setUpcomingSummary(null)
+      return
+    }
+
+    const nearestDate = pending[0].data_na_kiedy!
+    const sameDate = pending.filter(z => z.data_na_kiedy === nearestDate)
+
+    const summary = sameDate.reduce(
+      (acc, z) => {
+        const pozycje = parsePozycjeFromTyp(z.typ, z.ilosc, z.ilosc_w_klatce)
+        for (const p of pozycje) {
+          if (p.typ === 'dwojka') acc.dwojka += p.klatki
+          else acc.jedynka += p.klatki
+        }
+        acc.ordersCount += 1
+        return acc
+      },
+      { date: nearestDate, jedynka: 0, dwojka: 0, ordersCount: 0 }
+    )
+
+    setUpcomingSummary(summary)
+  }
+
   useEffect(() => {
     load()
     loadOrders(today)
+    loadUpcomingSummary()
   }, [])
 
   useEffect(() => {
@@ -126,7 +161,6 @@ export default function Home() {
       jedynka_klatki: '',
       dwojka_klatki: '0',
       peczkow_w_klatce: '25',
-      cena_za_peczek: '',
       uwagi: '',
     })
   }
@@ -135,7 +169,6 @@ export default function Home() {
     const jedynka = Number(quickOrder.jedynka_klatki) || 0
     const dwojka = Number(quickOrder.dwojka_klatki) || 0
     const pwk = Number(quickOrder.peczkow_w_klatce) || 25
-    const cenaZaPeczek = quickOrder.cena_za_peczek ? Number(quickOrder.cena_za_peczek) : null
     const pozycje = [
       { typ: 'jedynka' as const, klatki: jedynka },
       { typ: 'dwojka' as const, klatki: dwojka },
@@ -156,8 +189,8 @@ export default function Home() {
       ilosc: totalPeczkow,
       ilosc_w_klatce: pwk,
       typ: serializePozycje(pozycje),
-      cena_za_peczek: cenaZaPeczek,
-      cena_calkowita: cenaZaPeczek != null ? Number((totalPeczkow * cenaZaPeczek).toFixed(2)) : null,
+      cena_za_peczek: null,
+      cena_calkowita: null,
       uwagi: quickOrder.uwagi || null,
     })
     setQuickOrderSaving(false)
@@ -172,6 +205,7 @@ export default function Home() {
     resetQuickOrder()
     load()
     loadOrders(deliveryDate)
+    loadUpcomingSummary()
   }
 
   async function saveZbior() {
@@ -247,6 +281,7 @@ export default function Home() {
     toast.success(`Wydano — ${odbiorcaName((wydajZam as any).odbiorcy)}`)
     setWydajOpen(false)
     loadOrders(deliveryDate)
+    loadUpcomingSummary()
   }
 
   async function cofnijWydanie(id: number) {
@@ -262,6 +297,7 @@ export default function Home() {
     }
 
     loadOrders(deliveryDate)
+    loadUpcomingSummary()
   }
 
   const pending = useMemo(() => orders.filter(z => !z.wydane), [orders])
@@ -281,14 +317,6 @@ export default function Home() {
   const totalKlatek = useMemo(() => orders.reduce((s, z) => s + cratesForOrder(z), 0), [orders])
   const totalPeczkow = useMemo(() => orders.reduce((s, z) => s + peczkiForOrder(z), 0), [orders])
 
-  const statCards = [
-    { label: 'Folie', value: stats.folie, color: 'text-green-700', bg: 'bg-green-50 border-green-200', href: '/mapa' },
-    { label: 'Zbiory dziś', value: stats.zbiory_dzis, color: 'text-orange-700', bg: 'bg-orange-50 border-orange-200', href: '/zbiory' },
-    { label: 'Zbiory (7 dni)', value: stats.zbiory_tydzien, color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', href: '/zbiory' },
-    { label: 'Zasiewy', value: stats.sianie, color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200', href: '/sianie' },
-    { label: 'Zamówienia', value: stats.zamowienia, color: 'text-purple-700', bg: 'bg-purple-50 border-purple-200', href: '/zamowienia' },
-  ]
-
   return (
     <div className='space-y-5'>
       <div className='flex items-center justify-between gap-3'>
@@ -301,13 +329,38 @@ export default function Home() {
         </Button>
       </div>
 
-      <div className='grid grid-cols-3 md:grid-cols-5 gap-2.5'>
-        {statCards.map(c => (
-          <a key={c.label} href={c.href} className={`border rounded-xl p-3 ${c.bg} hover:opacity-80 transition-opacity`}>
-            <div className={`text-2xl font-bold ${c.color}`}>{c.value}</div>
-            <div className='text-xs text-gray-500 mt-0.5 leading-tight'>{c.label}</div>
-          </a>
-        ))}
+      <div className='bg-white border rounded-2xl overflow-hidden'>
+        <div className='px-4 py-3 border-b bg-purple-50 flex items-center gap-3'>
+          <span className='text-xl'>📦</span>
+          <div className='flex-1 min-w-0'>
+            <h2 className='font-semibold text-gray-800'>Najbliższe zamówienie</h2>
+            <p className='text-xs text-purple-700 truncate'>
+              {upcomingSummary ? formatDateWithWeekdayPL(upcomingSummary.date) : 'Brak zaplanowanych zamówień'}
+            </p>
+          </div>
+        </div>
+
+        {upcomingSummary ? (
+          <div className='px-4 py-4 grid grid-cols-3 gap-3'>
+            <div className='rounded-xl bg-orange-50 border border-orange-200 px-3 py-3'>
+              <p className='text-xs text-orange-700'>Jedynka</p>
+              <p className='text-2xl font-bold text-orange-800'>{upcomingSummary.jedynka}</p>
+              <p className='text-xs text-orange-600'>klatek</p>
+            </div>
+            <div className='rounded-xl bg-amber-50 border border-amber-200 px-3 py-3'>
+              <p className='text-xs text-amber-700'>Dwójka</p>
+              <p className='text-2xl font-bold text-amber-800'>{upcomingSummary.dwojka}</p>
+              <p className='text-xs text-amber-600'>klatek</p>
+            </div>
+            <div className='rounded-xl bg-purple-50 border border-purple-200 px-3 py-3'>
+              <p className='text-xs text-purple-700'>Odbiory</p>
+              <p className='text-2xl font-bold text-purple-800'>{upcomingSummary.ordersCount}</p>
+              <p className='text-xs text-purple-600'>zamówień</p>
+            </div>
+          </div>
+        ) : (
+          <div className='py-10 text-center text-gray-400 text-sm'>Brak przyszłych zamówień</div>
+        )}
       </div>
 
       <div className='bg-white border rounded-2xl overflow-hidden'>
@@ -323,7 +376,7 @@ export default function Home() {
         </div>
 
         {orders.length === 0 ? (
-          <div className='py-10 text-center text-gray-400 text-sm'>Brak zamówień na {deliveryDate === today ? 'dziś' : deliveryDate}</div>
+          <div className='py-10 text-center text-gray-400 text-sm'>Brak zamówień na {deliveryDate === today ? 'dziś' : formatDatePL(deliveryDate)}</div>
         ) : (
           <>
             {pending.map(z => {
@@ -358,7 +411,12 @@ export default function Home() {
                       {z.zaplacono_kwota != null && <span className='text-green-600 font-semibold'> · {z.zaplacono_kwota} zł</span>}
                     </p>
                   </div>
-                  <span className='text-xs text-green-600 font-medium shrink-0'>✓ wydane</span>
+                  <div className='flex items-center gap-2 shrink-0'>
+                    <button onClick={() => openWydaj(z)} className='px-3 py-1.5 rounded-lg text-xs font-medium text-teal-700 bg-teal-100 hover:bg-teal-200 transition-colors'>
+                      Edytuj
+                    </button>
+                    <span className='text-xs text-green-600 font-medium'>✓ wydane</span>
+                  </div>
                 </div>
               )
             })}
@@ -521,15 +579,9 @@ export default function Home() {
               </div>
             </div>
 
-            <div className='grid grid-cols-2 gap-3'>
-              <div>
-                <Label>Pęczków w klatce</Label>
-                <Input type='number' min='1' value={quickOrder.peczkow_w_klatce} onChange={e => setQuickOrder(p => ({ ...p, peczkow_w_klatce: e.target.value }))} />
-              </div>
-              <div>
-                <Label>Cena za pęczek (opcjonalnie)</Label>
-                <Input type='number' min='0' step='0.01' value={quickOrder.cena_za_peczek} onChange={e => setQuickOrder(p => ({ ...p, cena_za_peczek: e.target.value }))} />
-              </div>
+            <div>
+              <Label>Pęczków w klatce</Label>
+              <Input type='number' min='1' value={quickOrder.peczkow_w_klatce} onChange={e => setQuickOrder(p => ({ ...p, peczkow_w_klatce: e.target.value }))} />
             </div>
 
             <div>

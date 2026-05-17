@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { formatDatePL } from '@/lib/date'
 
 const empty = { nazwa: '', data_nalozenia: '', szerokosc: '160', wysokosc: '80' }
 
@@ -64,7 +65,7 @@ export default function FoliePage() {
               <p className="font-semibold text-gray-900">{f.nazwa}</p>
               <p className="text-sm text-gray-500">
                 {f.szerokosc} × {f.wysokosc} px
-                {f.data_nalozenia && <span> · Od {f.data_nalozenia}</span>}
+                {f.data_nalozenia && <span> · Od {formatDatePL(f.data_nalozenia)}</span>}
               </p>
             </div>
             <div className="flex gap-1 shrink-0">

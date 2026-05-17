@@ -1,4 +1,5 @@
 'use client'
+
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Sianie, Folia, Nasiono } from '@/lib/types'
@@ -9,16 +10,20 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { formatDatePL } from '@/lib/date'
 
 const empty = { folia_id: '', nasiona_id: '', data: '', uwagi: '' }
 
-export default function SaniePage() {
+export default function SianiePage() {
   const [sianie, setSianie] = useState<Sianie[]>([])
   const [folie, setFolie] = useState<Folia[]>([])
   const [nasiona, setNasiona] = useState<Nasiono[]>([])
   const [open, setOpen] = useState(false)
+  const [nasionaOpen, setNasionaOpen] = useState(false)
   const [form, setForm] = useState(empty)
+  const [newNasiono, setNewNasiono] = useState('')
   const [editId, setEditId] = useState<number | null>(null)
+  const [seedSaving, setSeedSaving] = useState(false)
 
   async function load() {
     const [s, f, n] = await Promise.all([
@@ -26,47 +31,111 @@ export default function SaniePage() {
       supabase.from('folie').select('*').order('nazwa'),
       supabase.from('nasiona').select('*').order('nazwa'),
     ])
-    setSianie(s.data ?? [])
-    setFolie(f.data ?? [])
-    setNasiona(n.data ?? [])
+    setSianie((s.data as Sianie[]) ?? [])
+    setFolie((f.data as Folia[]) ?? [])
+    setNasiona((n.data as Nasiono[]) ?? [])
+  }
+
+  async function loadNasiona() {
+    const { data, error } = await supabase.from('nasiona').select('*').order('nazwa')
+    if (error) {
+      toast.error('Nie udało się wczytać nasion: ' + error.message)
+      return
+    }
+    setNasiona((data as Nasiono[]) ?? [])
   }
 
   useEffect(() => { load() }, [])
 
-  function openNew() { setForm({ ...empty, data: new Date().toISOString().slice(0, 10) }); setEditId(null); setOpen(true) }
+  function openNew() {
+    setForm({ ...empty, data: new Date().toISOString().slice(0, 10) })
+    setEditId(null)
+    setOpen(true)
+  }
+
   function openEdit(s: Sianie) {
-    setForm({ folia_id: String(s.folia_id ?? ''), nasiona_id: String(s.nasiona_id ?? ''), data: s.data, uwagi: s.uwagi ?? '' })
-    setEditId(s.id); setOpen(true)
+    setForm({
+      folia_id: String(s.folia_id ?? ''),
+      nasiona_id: String(s.nasiona_id ?? ''),
+      data: s.data,
+      uwagi: s.uwagi ?? '',
+    })
+    setEditId(s.id)
+    setOpen(true)
   }
 
   async function save() {
-    const payload = { folia_id: form.folia_id ? Number(form.folia_id) : null, nasiona_id: form.nasiona_id ? Number(form.nasiona_id) : null, data: form.data, uwagi: form.uwagi || null }
+    const payload = {
+      folia_id: form.folia_id ? Number(form.folia_id) : null,
+      nasiona_id: form.nasiona_id ? Number(form.nasiona_id) : null,
+      data: form.data,
+      uwagi: form.uwagi || null,
+    }
+
     const { error } = editId
       ? await supabase.from('sianie').update(payload).eq('id', editId)
       : await supabase.from('sianie').insert(payload)
-    if (error) { toast.error('Nie udało się zapisać: ' + error.message); return }
+
+    if (error) {
+      toast.error('Nie udało się zapisać: ' + error.message)
+      return
+    }
+
     toast.success(editId ? 'Zasiew zaktualizowany' : 'Zasiew dodany')
-    setOpen(false); load()
+    setOpen(false)
+    load()
+  }
+
+  async function saveNasiono() {
+    const nazwa = newNasiono.trim()
+    if (!nazwa) {
+      toast.error('Wpisz nazwę nasion')
+      return
+    }
+
+    setSeedSaving(true)
+    const { data, error } = await supabase.from('nasiona').insert({ nazwa }).select('*').single()
+    setSeedSaving(false)
+
+    if (error) {
+      toast.error('Nie udało się dodać nasion: ' + error.message)
+      return
+    }
+
+    const added = data as Nasiono
+    setNewNasiono('')
+    setNasionaOpen(false)
+    setForm(f => ({ ...f, nasiona_id: String(added.id) }))
+    toast.success('Nasiona dodane')
+    loadNasiona()
   }
 
   async function remove(id: number) {
     if (!confirm('Usunąć zasiew?')) return
     const { error } = await supabase.from('sianie').delete().eq('id', id)
-    if (error) { toast.error('Nie udało się usunąć: ' + error.message); return }
-    toast.success('Zasiew usunięty'); load()
+    if (error) {
+      toast.error('Nie udało się usunąć: ' + error.message)
+      return
+    }
+    toast.success('Zasiew usunięty')
+    load()
   }
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center gap-2 mb-4">
         <h1 className="text-xl font-bold text-gray-900">Sianie</h1>
-        <Button onClick={openNew}>+ Dodaj zasiew</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setNasionaOpen(true)}>+ Nasiona</Button>
+          <Button onClick={openNew}>+ Dodaj zasiew</Button>
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl border divide-y overflow-hidden">
         {sianie.length === 0 && (
           <div className="py-12 text-center text-gray-400 text-sm">Brak zasiewów</div>
         )}
+
         {sianie.map(s => (
           <div key={s.id} className="flex items-center gap-3 px-4 py-3.5 active:bg-gray-50">
             <div className="bg-green-100 rounded-xl p-2.5 shrink-0">
@@ -75,7 +144,7 @@ export default function SaniePage() {
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-gray-900">{(s.folie as any)?.nazwa ?? '—'}</p>
               <p className="text-sm text-gray-500">
-                {s.data}
+                {formatDatePL(s.data)}
                 {(s.nasiona as any)?.nazwa && <span className="text-gray-400"> · {(s.nasiona as any).nazwa}</span>}
               </p>
               {s.uwagi && <p className="text-xs text-gray-400 mt-0.5 truncate">{s.uwagi}</p>}
@@ -107,8 +176,11 @@ export default function SaniePage() {
                 <SelectContent>{folie.map(fl => <SelectItem key={fl.id} value={String(fl.id)}>{fl.nazwa}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>Nasiona</Label>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <Label>Nasiona</Label>
+                <Button type="button" variant="outline" size="sm" onClick={() => setNasionaOpen(true)}>+ Nowe nasiona</Button>
+              </div>
               <Select value={form.nasiona_id} onValueChange={v => setForm(f => ({ ...f, nasiona_id: v ?? '' }))}>
                 <SelectTrigger><SelectValue placeholder="Wybierz nasiona" /></SelectTrigger>
                 <SelectContent>{nasiona.map(n => <SelectItem key={n.id} value={String(n.id)}>{n.nazwa}</SelectItem>)}</SelectContent>
@@ -121,6 +193,27 @@ export default function SaniePage() {
             <div className="flex gap-2 pt-1">
               <Button variant="outline" onClick={() => setOpen(false)} className="flex-1">Anuluj</Button>
               <Button onClick={save} disabled={!form.data} className="flex-1">Zapisz</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={nasionaOpen} onOpenChange={setNasionaOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Nowe nasiona</DialogTitle></DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div>
+              <Label>Nazwa</Label>
+              <Input
+                value={newNasiono}
+                onChange={e => setNewNasiono(e.target.value)}
+                placeholder="np. Rzodkiewka Saxa"
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-2 pt-1">
+              <Button variant="outline" onClick={() => setNasionaOpen(false)} className="flex-1">Anuluj</Button>
+              <Button onClick={saveNasiono} disabled={seedSaving} className="flex-1">Dodaj</Button>
             </div>
           </div>
         </DialogContent>

@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { formatDatePL } from '@/lib/date'
 
 type Pozycja = { nawoz_id: string; ilosc: string; jednostka: 'kg' | 'g' }
 const emptyPozycja = (): Pozycja => ({ nawoz_id: '', ilosc: '', jednostka: 'kg' })
@@ -116,7 +117,7 @@ export default function NawozyPage() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-gray-900">{(n.folie as any)?.nazwa ?? '—'}</p>
-              <p className="text-sm text-gray-500">{n.data}</p>
+              <p className="text-sm text-gray-500">{formatDatePL(n.data)}</p>
               {(n.nawozenie_pozycje?.length ?? 0) > 0 && (
                 <p className="text-xs text-gray-400 mt-0.5 truncate">
                   {(n.nawozenie_pozycje ?? []).map(p => `${(p.nawozy_slownik as any)?.nazwa ?? '?'} ${p.ilosc ?? ''}${p.jednostka}`).join(', ')}
