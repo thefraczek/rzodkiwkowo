@@ -1,4 +1,5 @@
 'use client'
+
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
@@ -28,29 +29,33 @@ function LoginForm() {
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white flex flex-col items-center justify-center px-6">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-2xl mb-4 text-4xl">
-            🌱
-          </div>
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-2xl mb-4 text-4xl">🌱</div>
           <h1 className="text-2xl font-bold text-gray-900">Rzodkiewkowo</h1>
           <p className="text-sm text-gray-500 mt-1">Zaloguj się, aby kontynuować</p>
         </div>
 
-        <form onSubmit={login} className="space-y-4">
+        <form onSubmit={login} className="space-y-4" autoComplete="on">
           <div>
             <Label className="text-sm font-medium text-gray-700">Email</Label>
             <Input
+              name="email"
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="twoj@email.pl"
               required
-              autoComplete="email"
+              autoComplete="username email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              inputMode="email"
               className="mt-1 h-12 text-base"
             />
           </div>
           <div>
             <Label className="text-sm font-medium text-gray-700">Hasło</Label>
             <Input
+              name="password"
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
