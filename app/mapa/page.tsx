@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import MapView from '@/components/MapView'
 import { formatDatePL } from '@/lib/date'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 const empty = { nazwa: '', data_nalozenia: '', metry_kwadratowe: '', szerokosc: '160', wysokosc: '80' }
 
@@ -19,6 +20,7 @@ export default function MapaPage() {
   const [form, setForm] = useState(empty)
   const [editId, setEditId] = useState<number | null>(null)
   const [mapSignal, setMapSignal] = useState(0)
+  const [confirmAction, setConfirmAction] = useState<(() => Promise<void>) | null>(null)
 
   async function load() {
     const { data } = await supabase.from('folie').select('*').order('created_at', { ascending: false })
@@ -69,16 +71,14 @@ export default function MapaPage() {
     setMapSignal(s => s + 1)
   }
 
-  async function remove(id: number) {
-    if (!confirm('Usunąć folię?')) return
-    const { error } = await supabase.from('folie').delete().eq('id', id)
-    if (error) {
-      toast.error('Nie udało się usunąć: ' + error.message)
-      return
-    }
-    toast.success('Folia usunięta')
-    load()
-    setMapSignal(s => s + 1)
+  function remove(id: number) {
+    setConfirmAction(() => async () => {
+      const { error } = await supabase.from('folie').delete().eq('id', id)
+      if (error) { toast.error('Nie udało się usunąć: ' + error.message); return }
+      toast.success('Folia usunięta')
+      load()
+      setMapSignal(s => s + 1)
+    })
   }
 
   return (
@@ -164,6 +164,12 @@ export default function MapaPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!confirmAction}
+        onConfirm={async () => { await confirmAction?.(); setConfirmAction(null) }}
+        onCancel={() => setConfirmAction(null)}
+      />
     </div>
   )
 }

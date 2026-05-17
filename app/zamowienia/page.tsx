@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { type ZamowieniePozycja, serializePozycje, parsePozycjeFromTyp, cratesFromPozycje, formatPozycje } from '@/lib/order-lines'
 import { formatDatePL } from '@/lib/date'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 const today = new Date().toISOString().slice(0, 10)
 
@@ -50,6 +51,7 @@ export default function ZamowieniaPage() {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(empty)
   const [editId, setEditId] = useState<number | null>(null)
+  const [confirmAction, setConfirmAction] = useState<(() => Promise<void>) | null>(null)
 
   async function load() {
     const [z, o] = await Promise.all([
@@ -124,15 +126,13 @@ export default function ZamowieniaPage() {
     load()
   }
 
-  async function remove(id: number) {
-    if (!confirm('Usunąć zamówienie?')) return
-    const { error } = await supabase.from('zamowienia').delete().eq('id', id)
-    if (error) {
-      toast.error('Nie udało się usunąć: ' + error.message)
-      return
-    }
-    toast.success('Zamówienie usunięte')
-    load()
+  function remove(id: number) {
+    setConfirmAction(() => async () => {
+      const { error } = await supabase.from('zamowienia').delete().eq('id', id)
+      if (error) { toast.error('Nie udało się usunąć: ' + error.message); return }
+      toast.success('Zamówienie usunięte')
+      load()
+    })
   }
 
   return (
@@ -245,6 +245,12 @@ export default function ZamowieniaPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!confirmAction}
+        onConfirm={async () => { await confirmAction?.(); setConfirmAction(null) }}
+        onCancel={() => setConfirmAction(null)}
+      />
     </div>
   )
 }

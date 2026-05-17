@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { formatDatePL } from '@/lib/date'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 const empty = { nazwa: '', data_nalozenia: '', szerokosc: '160', wysokosc: '80' }
 
@@ -16,6 +17,7 @@ export default function FoliePage() {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(empty)
   const [editId, setEditId] = useState<number | null>(null)
+  const [confirmAction, setConfirmAction] = useState<(() => Promise<void>) | null>(null)
 
   async function load() {
     const { data } = await supabase.from('folie').select('*').order('created_at', { ascending: false })
@@ -40,11 +42,12 @@ export default function FoliePage() {
     setOpen(false); load()
   }
 
-  async function remove(id: number) {
-    if (!confirm('Usunąć folię?')) return
-    const { error } = await supabase.from('folie').delete().eq('id', id)
-    if (error) { toast.error('Nie udało się usunąć: ' + error.message); return }
-    toast.success('Folia usunięta'); load()
+  function remove(id: number) {
+    setConfirmAction(() => async () => {
+      const { error } = await supabase.from('folie').delete().eq('id', id)
+      if (error) { toast.error('Nie udało się usunąć: ' + error.message); return }
+      toast.success('Folia usunięta'); load()
+    })
   }
 
   return (
@@ -110,6 +113,12 @@ export default function FoliePage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!confirmAction}
+        onConfirm={async () => { await confirmAction?.(); setConfirmAction(null) }}
+        onCancel={() => setConfirmAction(null)}
+      />
     </div>
   )
 }

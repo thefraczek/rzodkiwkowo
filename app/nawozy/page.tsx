@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { formatDatePL } from '@/lib/date'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 type Pozycja = { nawoz_id: string; ilosc: string; jednostka: 'kg' | 'g' }
 const emptyPozycja = (): Pozycja => ({ nawoz_id: '', ilosc: '', jednostka: 'kg' })
@@ -24,6 +25,7 @@ export default function NawozyPage() {
   const [form, setForm] = useState(emptyForm)
   const [editId, setEditId] = useState<number | null>(null)
   const [nowaNazwa, setNowaNazwa] = useState('')
+  const [confirmAction, setConfirmAction] = useState<(() => Promise<void>) | null>(null)
 
   async function load() {
     const [n, f, s] = await Promise.all([
@@ -71,11 +73,12 @@ export default function NawozyPage() {
     setOpen(false); load()
   }
 
-  async function remove(id: number) {
-    if (!confirm('Usunąć nawożenie?')) return
-    const { error } = await supabase.from('nawozenie').delete().eq('id', id)
-    if (error) { toast.error('Nie udało się usunąć: ' + error.message); return }
-    toast.success('Nawożenie usunięte'); load()
+  function remove(id: number) {
+    setConfirmAction(() => async () => {
+      const { error } = await supabase.from('nawozenie').delete().eq('id', id)
+      if (error) { toast.error('Nie udało się usunąć: ' + error.message); return }
+      toast.success('Nawożenie usunięte'); load()
+    })
   }
 
   async function addNawoz() {
@@ -85,11 +88,12 @@ export default function NawozyPage() {
     toast.success('Nawóz dodany'); setNowaNazwa(''); load()
   }
 
-  async function removeNawoz(id: number) {
-    if (!confirm('Usunąć nawóz ze słownika?')) return
-    const { error } = await supabase.from('nawozy_slownik').delete().eq('id', id)
-    if (error) { toast.error('Nie udało się usunąć: ' + error.message); return }
-    toast.success('Nawóz usunięty'); load()
+  function removeNawoz(id: number) {
+    setConfirmAction(() => async () => {
+      const { error } = await supabase.from('nawozy_slownik').delete().eq('id', id)
+      if (error) { toast.error('Nie udało się usunąć: ' + error.message); return }
+      toast.success('Nawóz usunięty'); load()
+    })
   }
 
   function updatePozycja(i: number, key: keyof Pozycja, val: string) {
@@ -208,6 +212,12 @@ export default function NawozyPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!confirmAction}
+        onConfirm={async () => { await confirmAction?.(); setConfirmAction(null) }}
+        onCancel={() => setConfirmAction(null)}
+      />
     </div>
   )
 }

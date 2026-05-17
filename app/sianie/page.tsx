@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { formatDatePL } from '@/lib/date'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 const empty = { folia_id: '', nasiona_id: '', data: '', uwagi: '' }
 
@@ -24,6 +25,7 @@ export default function SianiePage() {
   const [newNasiono, setNewNasiono] = useState('')
   const [editId, setEditId] = useState<number | null>(null)
   const [seedSaving, setSeedSaving] = useState(false)
+  const [confirmAction, setConfirmAction] = useState<(() => Promise<void>) | null>(null)
 
   async function load() {
     const [s, f, n] = await Promise.all([
@@ -110,15 +112,13 @@ export default function SianiePage() {
     loadNasiona()
   }
 
-  async function remove(id: number) {
-    if (!confirm('Usunąć zasiew?')) return
-    const { error } = await supabase.from('sianie').delete().eq('id', id)
-    if (error) {
-      toast.error('Nie udało się usunąć: ' + error.message)
-      return
-    }
-    toast.success('Zasiew usunięty')
-    load()
+  function remove(id: number) {
+    setConfirmAction(() => async () => {
+      const { error } = await supabase.from('sianie').delete().eq('id', id)
+      if (error) { toast.error('Nie udało się usunąć: ' + error.message); return }
+      toast.success('Zasiew usunięty')
+      load()
+    })
   }
 
   return (
@@ -218,6 +218,12 @@ export default function SianiePage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!confirmAction}
+        onConfirm={async () => { await confirmAction?.(); setConfirmAction(null) }}
+        onCancel={() => setConfirmAction(null)}
+      />
     </div>
   )
 }

@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { formatDatePL } from '@/lib/date'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 const empty = { folia_id: '', data: '', preparat: '', uwagi: '' }
 
@@ -19,6 +20,7 @@ export default function OpryszkiPage() {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(empty)
   const [editId, setEditId] = useState<number | null>(null)
+  const [confirmAction, setConfirmAction] = useState<(() => Promise<void>) | null>(null)
 
   async function load() {
     const [o, f] = await Promise.all([
@@ -47,11 +49,12 @@ export default function OpryszkiPage() {
     setOpen(false); load()
   }
 
-  async function remove(id: number) {
-    if (!confirm('Usunąć oprysk?')) return
-    const { error } = await supabase.from('opryski').delete().eq('id', id)
-    if (error) { toast.error('Nie udało się usunąć: ' + error.message); return }
-    toast.success('Oprysk usunięty'); load()
+  function remove(id: number) {
+    setConfirmAction(() => async () => {
+      const { error } = await supabase.from('opryski').delete().eq('id', id)
+      if (error) { toast.error('Nie udało się usunąć: ' + error.message); return }
+      toast.success('Oprysk usunięty'); load()
+    })
   }
 
   return (
@@ -120,6 +123,12 @@ export default function OpryszkiPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!confirmAction}
+        onConfirm={async () => { await confirmAction?.(); setConfirmAction(null) }}
+        onCancel={() => setConfirmAction(null)}
+      />
     </div>
   )
 }

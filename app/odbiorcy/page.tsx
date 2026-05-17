@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 const empty = { imie: '', nazwisko: '', ksywa: '', tel: '', miejsce_odbioru: '' }
 
@@ -15,6 +16,7 @@ export default function OdbiorcyPage() {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(empty)
   const [editId, setEditId] = useState<number | null>(null)
+  const [confirmAction, setConfirmAction] = useState<(() => Promise<void>) | null>(null)
 
   async function load() {
     const { data } = await supabase.from('odbiorcy').select('*').order('created_at', { ascending: false })
@@ -39,11 +41,12 @@ export default function OdbiorcyPage() {
     setOpen(false); load()
   }
 
-  async function remove(id: number) {
-    if (!confirm('Usunąć odbiorcę?')) return
-    const { error } = await supabase.from('odbiorcy').delete().eq('id', id)
-    if (error) { toast.error('Nie udało się usunąć: ' + error.message); return }
-    toast.success('Odbiorca usunięty'); load()
+  function remove(id: number) {
+    setConfirmAction(() => async () => {
+      const { error } = await supabase.from('odbiorcy').delete().eq('id', id)
+      if (error) { toast.error('Nie udało się usunąć: ' + error.message); return }
+      toast.success('Odbiorca usunięty'); load()
+    })
   }
 
   function displayName(o: Odbiorca) {
@@ -125,6 +128,12 @@ export default function OdbiorcyPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!confirmAction}
+        onConfirm={async () => { await confirmAction?.(); setConfirmAction(null) }}
+        onCancel={() => setConfirmAction(null)}
+      />
     </div>
   )
 }

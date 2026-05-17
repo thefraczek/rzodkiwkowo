@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea'
 import MapView from '@/components/MapView'
 import { parsePozycjeFromTyp, cratesFromPozycje, formatPozycje, serializePozycje } from '@/lib/order-lines'
 import { formatDatePL } from '@/lib/date'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 type UpcomingSummary = { date: string; jedynka: number; dwojka: number; ordersCount: number } | null
 
@@ -74,6 +75,8 @@ export default function Home() {
   const [orders, setOrders] = useState<Zamowienie[]>([])
   const [issuedHistory, setIssuedHistory] = useState<Zamowienie[]>([])
 
+  const [confirmAction, setConfirmAction] = useState<(() => Promise<void>) | null>(null)
+  const [confirmMessage, setConfirmMessage] = useState('')
   const [wydajOpen, setWydajOpen] = useState(false)
   const [wydajZam, setWydajZam] = useState<Zamowienie | null>(null)
   const [wydajPuste, setWydajPuste] = useState('0')
@@ -282,20 +285,17 @@ export default function Home() {
     loadUpcomingSummary()
   }
 
-  async function cofnijWydanie(id: number) {
-    if (!confirm('Cofnąć wydanie?')) return
-    const { error } = await supabase
-      .from('zamowienia')
-      .update({ wydane: false, data_wydania: null, puste_zwrocono: 0, zaplacono_kwota: null })
-      .eq('id', id)
-
-    if (error) {
-      toast.error('Błąd: ' + error.message)
-      return
-    }
-
-    loadOrders(deliveryDate)
-    loadUpcomingSummary()
+  function cofnijWydanie(id: number) {
+    setConfirmMessage('Cofnąć oznaczenie wydania? Zamówienie wróci do listy oczekujących.')
+    setConfirmAction(() => async () => {
+      const { error } = await supabase
+        .from('zamowienia')
+        .update({ wydane: false, data_wydania: null, puste_zwrocono: 0, zaplacono_kwota: null })
+        .eq('id', id)
+      if (error) { toast.error('Błąd: ' + error.message); return }
+      loadOrders(deliveryDate)
+      loadUpcomingSummary()
+    })
   }
 
   const pending = useMemo(() => orders.filter(z => !z.wydane), [orders])
@@ -593,6 +593,14 @@ export default function Home() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!confirmAction}
+        message={confirmMessage || undefined}
+        confirmLabel='Cofnij'
+        onConfirm={async () => { await confirmAction?.(); setConfirmAction(null) }}
+        onCancel={() => setConfirmAction(null)}
+      />
     </div>
   )
 }
