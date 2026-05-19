@@ -72,6 +72,7 @@ export default function Home() {
   const [nasionaId, setNasionaId] = useState('')
 
   const [deliveryDate, setDeliveryDate] = useState(today)
+  const [mapZoom, setMapZoom] = useState(1)
   const [orders, setOrders] = useState<Zamowienie[]>([])
   const [issuedHistory, setIssuedHistory] = useState<Zamowienie[]>([])
 
@@ -343,10 +344,18 @@ export default function Home() {
       </div>
 
       <div className='bg-white border rounded-2xl overflow-hidden'>
-        <div className='px-3 py-2 flex items-center border-b'>
+        <div className='px-3 py-2 flex items-center gap-2 border-b'>
           <h2 className='font-semibold text-gray-800 text-sm flex-1'>Folie</h2>
+          <button
+            onClick={() => setMapZoom(z => Math.min(3, +(z + 0.25).toFixed(2)))}
+            className='w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 active:bg-gray-100 text-base font-bold leading-none transition-colors'
+          >+</button>
+          <button
+            onClick={() => setMapZoom(z => Math.max(0.5, +(z - 0.25).toFixed(2)))}
+            className='w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 active:bg-gray-100 text-base font-bold leading-none transition-colors'
+          >−</button>
         </div>
-        <MapView />
+        <MapView zoom={mapZoom} />
       </div>
 
       <div className='bg-white border rounded-2xl overflow-hidden'>
