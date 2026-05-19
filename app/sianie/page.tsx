@@ -123,9 +123,9 @@ export default function SianiePage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center gap-2 mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 mb-4">
         <h1 className="text-xl font-bold text-gray-900">Sianie</h1>
-        <div className="flex gap-2">
+        <div className="flex gap-2 ml-auto">
           <Button variant="outline" size='sm' onClick={() => setNasionaOpen(true)}>+ Nasiona</Button>
           <Button size='sm' onClick={openNew}>+ Dodaj zasiew</Button>
         </div>
