@@ -36,7 +36,7 @@ export default function BottomNav() {
   return (
     <>
       <nav className='fixed bottom-0 left-0 right-0 z-30 md:hidden bg-white border-t border-gray-200' style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className='flex h-16'>
+        <div className='flex' style={{ height: '64px' }}>
           {primary.map(item => {
             const active = pathname === item.href
             return (
@@ -89,9 +89,9 @@ export default function BottomNav() {
                 <p className='text-xs font-semibold text-gray-400 uppercase tracking-wider px-1 mb-2'>Operacyjne</p>
                 <div className='grid grid-cols-3 gap-2'>
                   {moreOperacyjne.map(item => (
-                    <Link key={item.href} href={item.href} onClick={() => setOpen(false)} className={`flex flex-col items-center gap-1.5 p-3 rounded-xl transition-colors ${pathname === item.href ? 'bg-green-50 text-green-700' : 'text-gray-600 active:bg-gray-100'}`}>
-                      <span className='text-2xl'>{item.icon}</span>
-                      <span className='text-xs font-medium'>{item.label}</span>
+                    <Link key={item.href} href={item.href} onClick={() => setOpen(false)} className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-colors ${pathname === item.href ? 'bg-green-50 text-green-700' : 'text-gray-600 active:bg-gray-100'}`}>
+                      <span className='text-2xl leading-none'>{item.icon}</span>
+                      <span className='text-[11px] font-medium text-center leading-tight'>{item.label}</span>
                     </Link>
                   ))}
                 </div>
@@ -101,9 +101,9 @@ export default function BottomNav() {
                 <p className='text-xs font-semibold text-gray-400 uppercase tracking-wider px-1 mb-2'>Konfiguracja</p>
                 <div className='grid grid-cols-3 gap-2'>
                   {moreKonfiguracja.map(item => (
-                    <Link key={item.href} href={item.href} onClick={() => setOpen(false)} className={`flex flex-col items-center gap-1.5 p-3 rounded-xl transition-colors ${pathname === item.href ? 'bg-green-50 text-green-700' : 'text-gray-500 active:bg-gray-100'}`}>
-                      <span className='text-2xl'>{item.icon}</span>
-                      <span className='text-xs font-medium'>{item.label}</span>
+                    <Link key={item.href} href={item.href} onClick={() => setOpen(false)} className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-colors ${pathname === item.href ? 'bg-green-50 text-green-700' : 'text-gray-500 active:bg-gray-100'}`}>
+                      <span className='text-2xl leading-none'>{item.icon}</span>
+                      <span className='text-[11px] font-medium text-center leading-tight'>{item.label}</span>
                     </Link>
                   ))}
                 </div>

@@ -159,10 +159,10 @@ export default function ZbioryPage() {
           const suma = peczki(z.ilosc_klatek, z.ilosc_w_klatce)
           return (
             <div key={z.id} className='flex items-center gap-3 px-4 py-3.5 active:bg-gray-50'>
-              <div className='bg-orange-100 rounded-xl p-2.5 shrink-0 flex flex-col items-center min-w-[56px]'>
+              <div className='bg-orange-100 rounded-xl p-2.5 shrink-0 flex flex-col items-center w-14'>
                 <span className='text-xl leading-none'>🥕</span>
                 {z.ilosc_klatek != null && (
-                  <span className='text-xs font-bold text-orange-700 mt-0.5'>{z.ilosc_klatek} kl.</span>
+                  <span className='text-[11px] font-bold text-orange-700 mt-0.5 leading-none'>{z.ilosc_klatek} kl.</span>
                 )}
               </div>
 

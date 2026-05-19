@@ -335,9 +335,9 @@ export default function Home() {
       <div className='flex items-center justify-between gap-3'>
         <div>
           <h1 className='text-xl font-bold text-gray-900'>Pulpit</h1>
-          <p className='text-sm text-gray-500'>Najczęstsze działania na dziś</p>
+          <p className='text-xs text-gray-500'>Działania na dziś</p>
         </div>
-        <Button className='shrink-0 bg-purple-600 hover:bg-purple-700' onClick={() => { resetQuickOrder(); setQuickOrderOpen(true) }}>
+        <Button size='sm' className='shrink-0 bg-purple-600 hover:bg-purple-700' onClick={() => { resetQuickOrder(); setQuickOrderOpen(true) }}>
           + Zamówienie
         </Button>
       </div>
@@ -385,15 +385,17 @@ export default function Home() {
       </div>
 
       <div className='bg-white border rounded-2xl overflow-hidden'>
-        <div className='px-4 py-3 border-b bg-teal-50 flex items-center gap-3'>
-          <span className='text-xl'>🚚</span>
-          <div className='flex-1 min-w-0'>
+        <div className='px-4 py-3 border-b bg-teal-50'>
+          <div className='flex items-center gap-2 mb-1'>
+            <span className='text-xl shrink-0'>🚚</span>
             <h2 className='font-semibold text-gray-800'>Wydania na dzień</h2>
-            <p className='text-xs text-teal-700 truncate'>
+          </div>
+          <div className='flex items-center justify-between gap-2'>
+            <p className='text-xs text-teal-700 truncate flex-1'>
               {orders.length} zam. · {totalKlatek} kl. · {totalPeczkow} pęczków
             </p>
+            <Input type='date' value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} className='shrink-0 w-[130px] h-7 text-[11px] border-teal-200 bg-white px-2' />
           </div>
-          <Input type='date' value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} className='w-auto h-9 text-sm border-teal-200 bg-white shrink-0' />
         </div>
 
         {orders.length === 0 ? (
