@@ -61,10 +61,11 @@ export default function BottomNav() {
       {open && (
         <>
           <div className='fixed inset-0 bg-black/50 z-40 md:hidden' onClick={() => setOpen(false)} />
-          <div className='fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white rounded-t-2xl shadow-2xl' style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-            <div className='w-10 h-1 bg-gray-200 rounded-full mx-auto mt-3 mb-3' />
-            <div className='px-4 pb-4 space-y-4'>
-              <div className='flex items-center justify-between gap-3'>
+          <div className='fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white rounded-t-2xl shadow-2xl flex flex-col max-h-[85svh]' style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+            {/* drag handle + header — zawsze widoczne */}
+            <div className='shrink-0'>
+              <div className='w-10 h-1 bg-gray-200 rounded-full mx-auto mt-3 mb-3' />
+              <div className='px-4 pb-3 flex items-center justify-between gap-3 border-b border-gray-100'>
                 <div>
                   <p className='text-base font-semibold text-gray-900'>Więcej</p>
                   <p className='text-xs text-gray-400'>Dodatkowe sekcje i ustawienia</p>
@@ -80,7 +81,10 @@ export default function BottomNav() {
                   </svg>
                 </button>
               </div>
+            </div>
 
+            {/* scrollowalna treść */}
+            <div className='overflow-y-auto px-4 py-4 space-y-4'>
               <div>
                 <p className='text-xs font-semibold text-gray-400 uppercase tracking-wider px-1 mb-2'>Operacyjne</p>
                 <div className='grid grid-cols-3 gap-2'>
