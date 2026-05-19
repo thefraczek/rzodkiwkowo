@@ -154,7 +154,7 @@ export default function NawozyPage() {
               <div>
                 <Label>Folia</Label>
                 <Select key={folie.length} value={form.folia_id} onValueChange={v => setForm(f => ({ ...f, folia_id: v ?? '' }))}>
-                  <SelectTrigger><SelectValue placeholder="Wybierz" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Wybierz">{folie.find(f => String(f.id) === form.folia_id)?.nazwa}</SelectValue></SelectTrigger>
                   <SelectContent>{folie.map(fl => <SelectItem key={fl.id} value={String(fl.id)}>{fl.nazwa}</SelectItem>)}</SelectContent>
                 </Select>
               </div>

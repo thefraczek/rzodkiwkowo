@@ -207,7 +207,7 @@ export default function ZbioryPage() {
             <div>
               <Label>Folia <span className='text-gray-400 font-normal'>(opcjonalnie)</span></Label>
               <Select key={folie.length} value={form.folia_id} onValueChange={v => setForm(f => ({ ...f, folia_id: v ?? '' }))}>
-                <SelectTrigger><SelectValue placeholder='Wybierz folię' /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder='Wybierz folię'>{folie.find(f => String(f.id) === form.folia_id)?.nazwa}</SelectValue></SelectTrigger>
                 <SelectContent>{folie.map(fl => <SelectItem key={fl.id} value={String(fl.id)}>{fl.nazwa}</SelectItem>)}</SelectContent>
               </Select>
             </div>

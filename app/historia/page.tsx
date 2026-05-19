@@ -156,7 +156,7 @@ export default function HistoriaPage() {
       <div className='mb-5'>
         <Select key={folie.length} value={selectedId} onValueChange={setSelectedId}>
           <SelectTrigger className='bg-white'>
-            <SelectValue placeholder='Wybierz folię' />
+            <SelectValue placeholder='Wybierz folię'>{folie.find(f => String(f.id) === selectedId)?.nazwa}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             {folie.map(f => (

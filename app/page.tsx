@@ -464,7 +464,7 @@ export default function Home() {
             <div>
               <Label>Folia <span className='text-gray-400 font-normal'>(opcjonalnie)</span></Label>
               <Select key={folie.length} value={zbiorFolia} onValueChange={v => setZbiorFolia(v ?? '')}>
-                <SelectTrigger><SelectValue placeholder='Wybierz folię' /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder='Wybierz folię'>{folie.find(f => String(f.id) === zbiorFolia)?.nazwa}</SelectValue></SelectTrigger>
                 <SelectContent>{folie.map(f => <SelectItem key={f.id} value={String(f.id)}>{f.nazwa}</SelectItem>)}</SelectContent>
               </Select>
             </div>
@@ -496,14 +496,14 @@ export default function Home() {
             <div>
               <Label>Folia</Label>
               <Select key={folie.length} value={sianieFolia} onValueChange={v => setSianieFolia(v ?? '')}>
-                <SelectTrigger><SelectValue placeholder='Wybierz folię' /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder='Wybierz folię'>{folie.find(f => String(f.id) === sianieFolia)?.nazwa}</SelectValue></SelectTrigger>
                 <SelectContent>{folie.map(f => <SelectItem key={f.id} value={String(f.id)}>{f.nazwa}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div>
               <Label>Nasiona <span className='text-gray-400 font-normal'>(opcjonalnie)</span></Label>
               <Select key={nasiona.length} value={nasionaId} onValueChange={v => setNasionaId(v ?? '')}>
-                <SelectTrigger><SelectValue placeholder='Wybierz nasiona' /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder='Wybierz nasiona'>{nasiona.find(n => String(n.id) === nasionaId)?.nazwa}</SelectValue></SelectTrigger>
                 <SelectContent>{nasiona.map(n => <SelectItem key={n.id} value={String(n.id)}>{n.nazwa}</SelectItem>)}</SelectContent>
               </Select>
             </div>
@@ -580,7 +580,7 @@ export default function Home() {
             <div>
               <Label>Odbiorca</Label>
               <Select key={odbiorcy.length} value={quickOrder.odbiorca_id} onValueChange={v => setQuickOrder(p => ({ ...p, odbiorca_id: v ?? '' }))}>
-                <SelectTrigger><SelectValue placeholder='Wybierz odbiorcę' /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder='Wybierz odbiorcę'>{(() => { const o = odbiorcy.find(o => String(o.id) === quickOrder.odbiorca_id); return o ? (o.ksywa || [o.imie, o.nazwisko].filter(Boolean).join(' ') || '?') : undefined })()}</SelectValue></SelectTrigger>
                 <SelectContent>
                   {odbiorcy.map(o => <SelectItem key={o.id} value={String(o.id)}>{odbiorcaName(o)}</SelectItem>)}
                 </SelectContent>

@@ -200,7 +200,7 @@ export default function ZamowieniaPage() {
             <div>
               <Label>Odbiorca</Label>
               <Select key={odbiorcy.length} value={form.odbiorca_id} onValueChange={v => setForm(p => ({ ...p, odbiorca_id: v ?? '' }))}>
-                <SelectTrigger><SelectValue placeholder='Wybierz odbiorcę' /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder='Wybierz odbiorcę'>{(() => { const o = odbiorcy.find(o => String(o.id) === form.odbiorca_id); return o ? (o.ksywa || [o.imie, o.nazwisko].filter(Boolean).join(' ') || '?') : undefined })()}</SelectValue></SelectTrigger>
                 <SelectContent>
                   {odbiorcy.map(o => <SelectItem key={o.id} value={String(o.id)}>{odbiorcaName(o)}</SelectItem>)}
                 </SelectContent>

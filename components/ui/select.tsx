@@ -18,11 +18,22 @@ function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   )
 }
 
-function SelectValue({ className, ...props }: SelectPrimitive.Value.Props) {
+function SelectValue({ className, children, placeholder, ...props }: SelectPrimitive.Value.Props) {
+  // If children is explicitly provided (non-empty), render it directly —
+  // this bypasses Base UI's internal item-label lookup which only works
+  // when SelectContent is open. Falls back to Base UI when no children.
+  if (children !== undefined && children !== null && children !== '') {
+    return (
+      <span data-slot="select-value" className={cn("flex flex-1 text-left", className)}>
+        {children}
+      </span>
+    )
+  }
   return (
     <SelectPrimitive.Value
       data-slot="select-value"
       className={cn("flex flex-1 text-left", className)}
+      placeholder={placeholder}
       {...props}
     />
   )
