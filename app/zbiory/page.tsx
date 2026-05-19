@@ -135,11 +135,11 @@ export default function ZbioryPage() {
 
   return (
     <div>
-      <div className='flex justify-between items-center mb-4'>
+      <div className='flex justify-between items-center gap-2 mb-4'>
         <div>
           <h1 className='text-xl font-bold text-gray-900'>Zbiory</h1>
           {totalKlatki > 0 && (
-            <p className='text-sm text-gray-500'>
+            <p className='text-[11px] text-gray-500'>
               Łącznie: {totalKlatki} kl.
               {totalJedynki > 0 && <span> · Jedynka: {totalJedynki} kl.</span>}
               {totalDwojki > 0 && <span> · Dwójka: {totalDwojki} kl.</span>}
@@ -147,7 +147,7 @@ export default function ZbioryPage() {
             </p>
           )}
         </div>
-        <Button onClick={openNew}>+ Dodaj zbiór</Button>
+        <Button size='sm' onClick={openNew} className='shrink-0'>+ Dodaj zbiór</Button>
       </div>
 
       <div className='bg-white rounded-2xl border divide-y overflow-hidden'>

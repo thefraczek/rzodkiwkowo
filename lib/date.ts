@@ -8,5 +8,5 @@ export function formatDatePL(value: string | null | undefined): string {
   const [year, month, day] = parts
   if (!year || !month || !day) return value
 
-  return `${day}-${month}-${year}`
+  return `${day}.${month}.${year}`
 }

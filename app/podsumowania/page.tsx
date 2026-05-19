@@ -261,19 +261,17 @@ const maxWeeklyMeters = Math.max(1, ...weeklyMeters.map(week => week.meters))
       </div>
 
       <div className='bg-white border rounded-2xl overflow-hidden'>
-        <div className='px-4 py-3 border-b bg-emerald-50 flex items-center justify-between gap-3'>
-          <div>
-            <h2 className='font-semibold text-gray-800'>Zasiane m² w 6 tygodni</h2>
-            <p className='text-xs text-emerald-700'>Liczone według powierzchni przypisanej do folii przy każdym zasiewie.</p>
-          </div>
-          <div className='flex gap-2 shrink-0'>
-            <div className='rounded-xl bg-white border border-emerald-200 px-3 py-2 text-right'>
+        <div className='px-4 py-3 border-b bg-emerald-50'>
+          <h2 className='font-semibold text-gray-800'>Zasiane m² w 6 tygodni</h2>
+          <p className='text-[11px] text-emerald-700 mt-0.5'>Liczone według powierzchni przypisanej do folii przy każdym zasiewie.</p>
+          <div className='flex gap-2 mt-2'>
+            <div className='rounded-lg bg-white border border-emerald-200 px-3 py-1.5 flex-1 text-center'>
               <div className='text-[11px] text-gray-500'>Ten tydzień</div>
-              <div className='text-lg font-bold text-emerald-700'>{currentWeekMeters} m²</div>
+              <div className='text-base font-bold text-emerald-700'>{currentWeekMeters} m²</div>
             </div>
-            <div className='rounded-xl bg-white border border-emerald-200 px-3 py-2 text-right'>
+            <div className='rounded-lg bg-white border border-emerald-200 px-3 py-1.5 flex-1 text-center'>
               <div className='text-[11px] text-gray-500'>Folie zasiane</div>
-              <div className='text-lg font-bold text-emerald-700'>{currentWeekFolie}</div>
+              <div className='text-base font-bold text-emerald-700'>{currentWeekFolie}</div>
             </div>
           </div>
         </div>
@@ -291,8 +289,8 @@ const maxWeeklyMeters = Math.max(1, ...weeklyMeters.map(week => week.meters))
                     />
                   </div>
                   <div className='mt-2 text-center text-[11px] font-medium text-gray-600'>{week.relativeLabel}</div>
-                  <div className='mt-0.5 text-center text-xs text-gray-400'>od {week.label}</div>
-                  <div className='mt-1 text-center text-sm font-semibold text-emerald-700'>{week.meters} m²</div>
+                  <div className='mt-0.5 text-center text-[11px] text-gray-400'>od {week.label}</div>
+                  <div className='mt-1 text-center text-[13px] font-semibold text-emerald-700'>{week.meters} m²</div>
                   <div className='text-center text-[11px] text-gray-500'>{week.folieCount} folii</div>
                 </div>
               ))}
@@ -322,7 +320,7 @@ const maxWeeklyMeters = Math.max(1, ...weeklyMeters.map(week => week.meters))
                   <span className='text-[11px] font-medium text-gray-500'>Jedynka (7 dni)</span>
                 </div>
                 <div className='text-xl font-bold text-orange-600'>{totJ} <span className='text-sm font-medium'>kl.</span></div>
-                <div className='text-xs text-gray-400 mt-0.5'>{totJp} pęczków</div>
+                <div className='text-[11px] text-gray-400 mt-0.5'>{totJp} pęczków</div>
               </div>
               <div className='px-3 py-3'>
                 <div className='flex items-center justify-center gap-1 mb-1'>
@@ -330,12 +328,12 @@ const maxWeeklyMeters = Math.max(1, ...weeklyMeters.map(week => week.meters))
                   <span className='text-[11px] font-medium text-gray-500'>Dwójka (7 dni)</span>
                 </div>
                 <div className='text-xl font-bold text-amber-500'>{totD} <span className='text-sm font-medium'>kl.</span></div>
-                <div className='text-xs text-gray-400 mt-0.5'>{totDp} pęczków</div>
+                <div className='text-[11px] text-gray-400 mt-0.5'>{totDp} pęczków</div>
               </div>
               <div className='px-3 py-3'>
                 <div className='text-[11px] font-medium text-gray-500 mb-1'>Razem (7 dni)</div>
                 <div className='text-xl font-bold text-gray-800'>{totJ + totD} <span className='text-sm font-medium'>kl.</span></div>
-                <div className='text-xs text-gray-400 mt-0.5'>{totJp + totDp} pęczków</div>
+                <div className='text-[11px] text-gray-400 mt-0.5'>{totJp + totDp} pęczków</div>
               </div>
             </div>
 
