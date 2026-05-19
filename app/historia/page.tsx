@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import type { Folia } from '@/lib/types'
 import { formatDatePL } from '@/lib/date'
@@ -25,9 +26,12 @@ const TYPE_META: Record<EventType, { icon: string; color: string; bg: string; do
   nawoz:  { icon: '🌿', color: 'text-yellow-700', bg: 'bg-yellow-50 border-yellow-200', dot: 'bg-yellow-500' },
 }
 
-export default function HistoriaPage() {
+function HistoriaInner() {
+  const searchParams = useSearchParams()
+  const foliaParam = searchParams.get('folia')
+
   const [folie, setFolie] = useState<Folia[]>([])
-  const [selectedId, setSelectedId] = useState<string>('')
+  const [selectedId, setSelectedId] = useState<string>(foliaParam ?? '')
   const [events, setEvents] = useState<TimelineEvent[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -50,7 +54,12 @@ export default function HistoriaPage() {
       return 0
     })
     setFolie(sorted)
-    if (sorted.length && !selectedId) setSelectedId(String(sorted[0].id))
+    if (sorted.length && !selectedId) {
+      const defaultId = foliaParam && sorted.some(f => String(f.id) === foliaParam)
+        ? foliaParam
+        : String(sorted[0].id)
+      setSelectedId(defaultId)
+    }
   }
 
   async function loadHistory(foliaId: string) {
@@ -220,5 +229,13 @@ export default function HistoriaPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function HistoriaPage() {
+  return (
+    <Suspense>
+      <HistoriaInner />
+    </Suspense>
   )
 }

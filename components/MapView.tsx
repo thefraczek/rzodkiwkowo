@@ -1,5 +1,6 @@
 ﻿'use client'
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import type { Folia, Nasiono } from '@/lib/types'
 import { toast } from 'sonner'
@@ -297,6 +298,15 @@ export default function MapView({ allowEdit = false, reloadSignal = 0, zoom = 1 
               <span className="text-lg">🌿</span><span className="text-xs">Nawóz</span>
             </Button>
           </div>
+          <Link
+            href={`/historia?folia=${selected?.id}`}
+            onClick={() => setSelected(null)}
+            className="flex items-center justify-center gap-1.5 w-full mt-1 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-700 active:bg-gray-100 transition-colors"
+          >
+            <span>📅</span>
+            <span>Historia tej folii</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-0.5 opacity-50"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </Link>
         </DialogContent>
       </Dialog>
 
