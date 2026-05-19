@@ -214,9 +214,9 @@ export default function Home() {
   async function saveZbior() {
     const j = Number(zbiorJedynka) || 0
     const d = Number(zbiorDwojka) || 0
-    if (!zbiorFolia || (j === 0 && d === 0)) return
+    if (j === 0 && d === 0) return
     const pwk = Number(zbiorPeczkowWKlatce) || 25
-    const base = { folia_id: Number(zbiorFolia), data_zbioru: today, ilosc_w_klatce: pwk, uwagi: zbiorUwagi || null }
+    const base = { folia_id: zbiorFolia ? Number(zbiorFolia) : null, data_zbioru: today, ilosc_w_klatce: pwk, uwagi: zbiorUwagi || null }
     const records: object[] = []
     if (j > 0) records.push({ ...base, typ: 'jedynka', ilosc_klatek: j })
     if (d > 0) records.push({ ...base, typ: 'dwojka', ilosc_klatek: d })
@@ -224,8 +224,8 @@ export default function Home() {
     const { error } = await supabase.from('zbiory').insert(records)
     setZbiorSaving(false)
     if (error) { toast.error('Błąd: ' + error.message); return }
-    const nazwa = folie.find(f => f.id === Number(zbiorFolia))?.nazwa ?? ''
-    toast.success(`Zbiór — ${nazwa} (${j + d} kl.)`)
+    const nazwa = zbiorFolia ? (folie.find(f => f.id === Number(zbiorFolia))?.nazwa ?? '') : ''
+    toast.success(`Zbiór${nazwa ? ` — ${nazwa}` : ''} (${j + d} kl.)`)
     setZbiorFolia('')
     setZbiorJedynka('')
     setZbiorDwojka('')
@@ -435,7 +435,7 @@ export default function Home() {
           <h2 className='font-semibold text-gray-800 mb-3 flex items-center gap-2'><span>🥕</span> Szybki zbiór — dziś</h2>
           <div className='space-y-3'>
             <div>
-              <Label>Folia</Label>
+              <Label>Folia <span className='text-gray-400 font-normal'>(opcjonalnie)</span></Label>
               <Select value={zbiorFolia} onValueChange={v => setZbiorFolia(v ?? '')}>
                 <SelectTrigger><SelectValue placeholder='Wybierz folię' /></SelectTrigger>
                 <SelectContent>{folie.map(f => <SelectItem key={f.id} value={String(f.id)}>{f.nazwa}</SelectItem>)}</SelectContent>
@@ -459,7 +459,7 @@ export default function Home() {
               <Label>Uwagi <span className='text-gray-400 font-normal'>(opcjonalnie)</span></Label>
               <Textarea value={zbiorUwagi} onChange={e => setZbiorUwagi(e.target.value)} rows={1} />
             </div>
-            <Button className='w-full bg-orange-500 hover:bg-orange-600' onClick={saveZbior} disabled={!zbiorFolia || (Number(zbiorJedynka) === 0 && Number(zbiorDwojka) === 0) || zbiorSaving}>Dodaj zbiór</Button>
+            <Button className='w-full bg-orange-500 hover:bg-orange-600' onClick={saveZbior} disabled={(Number(zbiorJedynka) === 0 && Number(zbiorDwojka) === 0) || zbiorSaving}>Dodaj zbiór</Button>
           </div>
         </div>
 
