@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { parsePozycjeFromTyp, cratesFromPozycje } from '@/lib/order-lines'
 import { formatDatePL } from '@/lib/date'
+import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus'
 
 type ActiveSowing = { id: number; data: string; folia_id: number | null; folie: { nazwa: string; kolor: string } | null }
 type ActivityItem = { icon: string; label: string; date: string }
@@ -229,6 +230,7 @@ export default function PodsumowaniaPage() {
   }
 
   useEffect(() => { load(); loadActiveSowings(); loadRecentActivity() }, [])
+  useRefreshOnFocus(() => { load(); loadActiveSowings(); loadRecentActivity() })
 
   const statCards = [
     { label: 'Folie', value: stats.folie, suffix: '', color: 'text-green-700', bg: 'bg-green-50 border-green-200', href: '/mapa' },

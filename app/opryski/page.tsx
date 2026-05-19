@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { formatDatePL } from '@/lib/date'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus'
 
 const empty = { folia_id: '', data: '', preparat: '', uwagi: '' }
 
@@ -32,6 +33,7 @@ export default function OpryszkiPage() {
   }
 
   useEffect(() => { load() }, [])
+  useRefreshOnFocus(load)
 
   function openNew() { setForm({ ...empty, data: new Date().toISOString().slice(0, 10) }); setEditId(null); setOpen(true) }
   function openEdit(o: Oprysk) {

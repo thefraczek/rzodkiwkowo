@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { type ZamowieniePozycja, serializePozycje, parsePozycjeFromTyp, cratesFromPozycje, formatPozycje } from '@/lib/order-lines'
 import { formatDatePL } from '@/lib/date'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus'
 
 const today = new Date().toISOString().slice(0, 10)
 
@@ -63,6 +64,7 @@ export default function ZamowieniaPage() {
   }
 
   useEffect(() => { load() }, [])
+  useRefreshOnFocus(load)
 
   function openNew() {
     setForm(empty)

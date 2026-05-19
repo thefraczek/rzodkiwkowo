@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { formatDatePL } from '@/lib/date'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus'
 
 const empty = { folia_id: '', data_zbioru: '', jedynka_klatki: '', dwojka_klatki: '', ilosc_w_klatce: '25', uwagi: '' }
 
@@ -58,6 +59,7 @@ export default function ZbioryPage() {
   }
 
   useEffect(() => { load() }, [])
+  useRefreshOnFocus(load)
 
   function openNew() {
     setForm({ ...empty, data_zbioru: new Date().toISOString().slice(0, 10) })

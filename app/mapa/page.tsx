@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import MapView from '@/components/MapView'
 import { formatDatePL } from '@/lib/date'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus'
 
 const empty = { nazwa: '', data_nalozenia: '', metry_kwadratowe: '', szerokosc: '160', wysokosc: '80' }
 
@@ -28,6 +29,7 @@ export default function MapaPage() {
   }
 
   useEffect(() => { load() }, [])
+  useRefreshOnFocus(load)
 
   function openNew() {
     setForm(empty)

@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { formatDatePL } from '@/lib/date'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus'
 
 const empty = { folia_id: '', nasiona_id: '', data: '', uwagi: '' }
 
@@ -47,6 +48,7 @@ export default function SianiePage() {
   }
 
   useEffect(() => { load() }, [])
+  useRefreshOnFocus(load)
 
   function openNew() {
     setForm({ ...empty, data: new Date().toISOString().slice(0, 10) })

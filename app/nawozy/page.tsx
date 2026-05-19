@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { formatDatePL } from '@/lib/date'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus'
 
 type Pozycja = { nawoz_id: string; ilosc: string; jednostka: 'kg' | 'g' }
 const emptyPozycja = (): Pozycja => ({ nawoz_id: '', ilosc: '', jednostka: 'kg' })
@@ -39,6 +40,7 @@ export default function NawozyPage() {
   }
 
   useEffect(() => { load() }, [])
+  useRefreshOnFocus(load)
 
   function openNew() {
     setForm({ ...emptyForm, data: new Date().toISOString().slice(0, 10), pozycje: [emptyPozycja()] })

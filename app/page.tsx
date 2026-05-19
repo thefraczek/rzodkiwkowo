@@ -14,6 +14,7 @@ import MapView from '@/components/MapView'
 import { parsePozycjeFromTyp, cratesFromPozycje, formatPozycje, serializePozycje } from '@/lib/order-lines'
 import { formatDatePL } from '@/lib/date'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus'
 
 type UpcomingSummary = { date: string; jedynka: number; dwojka: number; ordersCount: number } | null
 
@@ -168,6 +169,7 @@ export default function Home() {
     loadOrders(today)
     loadUpcomingSummary()
   }, [])
+  useRefreshOnFocus(load)
 
   useEffect(() => {
     loadOrders(deliveryDate)

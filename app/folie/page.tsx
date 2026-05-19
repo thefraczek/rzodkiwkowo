@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { formatDatePL } from '@/lib/date'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus'
 
 const empty = { nazwa: '', data_nalozenia: '', szerokosc: '160', wysokosc: '80' }
 
@@ -25,6 +26,7 @@ export default function FoliePage() {
   }
 
   useEffect(() => { load() }, [])
+  useRefreshOnFocus(load)
 
   function openNew() { setForm(empty); setEditId(null); setOpen(true) }
   function openEdit(f: Folia) {

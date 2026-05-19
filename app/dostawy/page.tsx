@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { parsePozycjeFromTyp, cratesFromPozycje, formatPozycje } from '@/lib/order-lines'
 import { formatDatePL } from '@/lib/date'
+import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus'
 
 function odbiorcaName(o: any) {
   return o?.ksywa || [o?.imie, o?.nazwisko].filter(Boolean).join(' ') || '?'
@@ -38,6 +39,7 @@ export default function DostawyPage() {
   }
 
   useEffect(() => { load() }, [])
+  useRefreshOnFocus(load)
 
   function openEdit(z: Zamowienie) {
     setEditOrder(z)

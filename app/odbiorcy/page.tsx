@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus'
 
 const empty = { imie: '', nazwisko: '', ksywa: '', tel: '', miejsce_odbioru: '' }
 
@@ -24,6 +25,7 @@ export default function OdbiorcyPage() {
   }
 
   useEffect(() => { load() }, [])
+  useRefreshOnFocus(load)
 
   function openNew() { setForm(empty); setEditId(null); setOpen(true) }
   function openEdit(o: Odbiorca) {
