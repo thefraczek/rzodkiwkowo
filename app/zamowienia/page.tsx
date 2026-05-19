@@ -56,7 +56,7 @@ export default function ZamowieniaPage() {
   async function load() {
     const [z, o] = await Promise.all([
       supabase.from('zamowienia').select('*, odbiorcy(*)').order('data_na_kiedy', { ascending: false }).order('data_utworzenia', { ascending: false }),
-      supabase.from('odbiorcy').select('*').order('ksywa'),
+      supabase.from('odbiorcy').select('*').eq('archived', false).order('ksywa'),
     ])
     setZamowienia((z.data as Zamowienie[]) ?? [])
     setOdbiorcy((o.data as Odbiorca[]) ?? [])

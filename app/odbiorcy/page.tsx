@@ -19,7 +19,7 @@ export default function OdbiorcyPage() {
   const [confirmAction, setConfirmAction] = useState<(() => Promise<void>) | null>(null)
 
   async function load() {
-    const { data } = await supabase.from('odbiorcy').select('*').order('created_at', { ascending: false })
+    const { data } = await supabase.from('odbiorcy').select('*').eq('archived', false).order('created_at', { ascending: false })
     setOdbiorcy(data ?? [])
   }
 
@@ -43,7 +43,7 @@ export default function OdbiorcyPage() {
 
   function remove(id: number) {
     setConfirmAction(() => async () => {
-      const { error } = await supabase.from('odbiorcy').delete().eq('id', id)
+      const { error } = await supabase.from('odbiorcy').update({ archived: true }).eq('id', id)
       if (error) { toast.error('Nie udało się usunąć: ' + error.message); return }
       toast.success('Odbiorca usunięty'); load()
     })

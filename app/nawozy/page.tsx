@@ -31,7 +31,7 @@ export default function NawozyPage() {
     const [n, f, s] = await Promise.all([
       supabase.from('nawozenie').select('*, folie(nazwa), nawozenie_pozycje(*, nawozy_slownik(nazwa))').order('data', { ascending: false }),
       supabase.from('folie').select('*').order('nazwa'),
-      supabase.from('nawozy_slownik').select('*').order('nazwa'),
+      supabase.from('nawozy_slownik').select('*').eq('archived', false).order('nazwa'),
     ])
     setNawozenia(n.data ?? [])
     setFolie(f.data ?? [])
@@ -90,7 +90,7 @@ export default function NawozyPage() {
 
   function removeNawoz(id: number) {
     setConfirmAction(() => async () => {
-      const { error } = await supabase.from('nawozy_slownik').delete().eq('id', id)
+      const { error } = await supabase.from('nawozy_slownik').update({ archived: true }).eq('id', id)
       if (error) { toast.error('Nie udało się usunąć: ' + error.message); return }
       toast.success('Nawóz usunięty'); load()
     })

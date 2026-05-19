@@ -33,7 +33,7 @@ export default function SianiePage() {
     const [s, f, n] = await Promise.all([
       supabase.from('sianie').select('*, folie(nazwa), nasiona(nazwa)').order('data', { ascending: false }),
       supabase.from('folie').select('*').order('nazwa'),
-      supabase.from('nasiona').select('*').order('nazwa'),
+      supabase.from('nasiona').select('*').eq('archived', false).order('nazwa'),
     ])
     setSianie((s.data as Sianie[]) ?? [])
     setFolie((f.data as Folia[]) ?? [])
@@ -41,7 +41,7 @@ export default function SianiePage() {
   }
 
   async function loadNasiona() {
-    const { data, error } = await supabase.from('nasiona').select('*').order('nazwa')
+    const { data, error } = await supabase.from('nasiona').select('*').eq('archived', false).order('nazwa')
     if (error) { toast.error('Nie udało się wczytać nasion: ' + error.message); return }
     setNasiona((data as Nasiono[]) ?? [])
   }
@@ -119,7 +119,7 @@ export default function SianiePage() {
 
   function removeNasiono(id: number) {
     setConfirmAction(() => async () => {
-      const { error } = await supabase.from('nasiona').delete().eq('id', id)
+      const { error } = await supabase.from('nasiona').update({ archived: true }).eq('id', id)
       if (error) { toast.error('Nie udało się usunąć: ' + error.message); return }
       toast.success('Nasiona usunięte')
       loadNasiona()

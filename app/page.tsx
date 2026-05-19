@@ -86,7 +86,7 @@ export default function Home() {
     const [f, n, o, s] = await Promise.all([
       supabase.from('folie').select('*').order('nazwa'),
       supabase.from('nasiona').select('*').order('nazwa'),
-      supabase.from('odbiorcy').select('*').order('ksywa'),
+      supabase.from('odbiorcy').select('*').eq('archived', false).order('ksywa'),
       supabase.from('sianie').select('folia_id, data').order('data', { ascending: true }),
     ])
 
