@@ -199,7 +199,7 @@ export default function ZamowieniaPage() {
           <div className='space-y-3 mt-2'>
             <div>
               <Label>Odbiorca</Label>
-              <Select value={form.odbiorca_id} onValueChange={v => setForm(p => ({ ...p, odbiorca_id: v ?? '' }))}>
+              <Select key={odbiorcy.length} value={form.odbiorca_id} onValueChange={v => setForm(p => ({ ...p, odbiorca_id: v ?? '' }))}>
                 <SelectTrigger><SelectValue placeholder='Wybierz odbiorcę' /></SelectTrigger>
                 <SelectContent>
                   {odbiorcy.map(o => <SelectItem key={o.id} value={String(o.id)}>{odbiorcaName(o)}</SelectItem>)}

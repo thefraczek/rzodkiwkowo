@@ -463,7 +463,7 @@ export default function Home() {
           <div className='space-y-3'>
             <div>
               <Label>Folia <span className='text-gray-400 font-normal'>(opcjonalnie)</span></Label>
-              <Select value={zbiorFolia} onValueChange={v => setZbiorFolia(v ?? '')}>
+              <Select key={folie.length} value={zbiorFolia} onValueChange={v => setZbiorFolia(v ?? '')}>
                 <SelectTrigger><SelectValue placeholder='Wybierz folię' /></SelectTrigger>
                 <SelectContent>{folie.map(f => <SelectItem key={f.id} value={String(f.id)}>{f.nazwa}</SelectItem>)}</SelectContent>
               </Select>
@@ -495,14 +495,14 @@ export default function Home() {
           <div className='space-y-3'>
             <div>
               <Label>Folia</Label>
-              <Select value={sianieFolia} onValueChange={v => setSianieFolia(v ?? '')}>
+              <Select key={folie.length} value={sianieFolia} onValueChange={v => setSianieFolia(v ?? '')}>
                 <SelectTrigger><SelectValue placeholder='Wybierz folię' /></SelectTrigger>
                 <SelectContent>{folie.map(f => <SelectItem key={f.id} value={String(f.id)}>{f.nazwa}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div>
               <Label>Nasiona <span className='text-gray-400 font-normal'>(opcjonalnie)</span></Label>
-              <Select value={nasionaId} onValueChange={v => setNasionaId(v ?? '')}>
+              <Select key={nasiona.length} value={nasionaId} onValueChange={v => setNasionaId(v ?? '')}>
                 <SelectTrigger><SelectValue placeholder='Wybierz nasiona' /></SelectTrigger>
                 <SelectContent>{nasiona.map(n => <SelectItem key={n.id} value={String(n.id)}>{n.nazwa}</SelectItem>)}</SelectContent>
               </Select>
@@ -579,7 +579,7 @@ export default function Home() {
           <div className='space-y-3 mt-2'>
             <div>
               <Label>Odbiorca</Label>
-              <Select value={quickOrder.odbiorca_id} onValueChange={v => setQuickOrder(p => ({ ...p, odbiorca_id: v ?? '' }))}>
+              <Select key={odbiorcy.length} value={quickOrder.odbiorca_id} onValueChange={v => setQuickOrder(p => ({ ...p, odbiorca_id: v ?? '' }))}>
                 <SelectTrigger><SelectValue placeholder='Wybierz odbiorcę' /></SelectTrigger>
                 <SelectContent>
                   {odbiorcy.map(o => <SelectItem key={o.id} value={String(o.id)}>{odbiorcaName(o)}</SelectItem>)}

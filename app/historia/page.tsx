@@ -154,7 +154,7 @@ export default function HistoriaPage() {
       </div>
 
       <div className='mb-5'>
-        <Select value={selectedId} onValueChange={setSelectedId}>
+        <Select key={folie.length} value={selectedId} onValueChange={setSelectedId}>
           <SelectTrigger className='bg-white'>
             <SelectValue placeholder='Wybierz folię' />
           </SelectTrigger>

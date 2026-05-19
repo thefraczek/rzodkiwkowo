@@ -105,7 +105,7 @@ export default function OpryszkiPage() {
             </div>
             <div>
               <Label>Folia</Label>
-              <Select value={form.folia_id} onValueChange={v => setForm(f => ({ ...f, folia_id: v ?? '' }))}>
+              <Select key={folie.length} value={form.folia_id} onValueChange={v => setForm(f => ({ ...f, folia_id: v ?? '' }))}>
                 <SelectTrigger><SelectValue placeholder="Wybierz folię" /></SelectTrigger>
                 <SelectContent>{folie.map(fl => <SelectItem key={fl.id} value={String(fl.id)}>{fl.nazwa}</SelectItem>)}</SelectContent>
               </Select>

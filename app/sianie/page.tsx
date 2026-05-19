@@ -179,7 +179,7 @@ export default function SianiePage() {
             </div>
             <div>
               <Label>Folia</Label>
-              <Select value={form.folia_id} onValueChange={v => setForm(f => ({ ...f, folia_id: v ?? '' }))}>
+              <Select key={folie.length} value={form.folia_id} onValueChange={v => setForm(f => ({ ...f, folia_id: v ?? '' }))}>
                 <SelectTrigger><SelectValue placeholder="Wybierz folię" /></SelectTrigger>
                 <SelectContent>{folie.map(fl => <SelectItem key={fl.id} value={String(fl.id)}>{fl.nazwa}</SelectItem>)}</SelectContent>
               </Select>
@@ -189,7 +189,7 @@ export default function SianiePage() {
                 <Label>Nasiona</Label>
                 <Button type="button" variant="outline" size="sm" onClick={() => setNasionaOpen(true)}>Słownik nasion</Button>
               </div>
-              <Select value={form.nasiona_id} onValueChange={v => setForm(f => ({ ...f, nasiona_id: v ?? '' }))}>
+              <Select key={nasiona.length} value={form.nasiona_id} onValueChange={v => setForm(f => ({ ...f, nasiona_id: v ?? '' }))}>
                 <SelectTrigger><SelectValue placeholder="Wybierz nasiona" /></SelectTrigger>
                 <SelectContent>{nasiona.map(n => <SelectItem key={n.id} value={String(n.id)}>{n.nazwa}</SelectItem>)}</SelectContent>
               </Select>
