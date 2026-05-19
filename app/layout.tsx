@@ -5,6 +5,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin", "latin-ext"], display: "swap" });
 import Nav from "@/components/Nav";
 import BottomNav from "@/components/BottomNav";
+import MobileHeader from "@/components/MobileHeader";
 import { AuthProvider } from "@/components/AuthProvider";
 import FontSizeProvider from "@/components/FontSizeProvider";
 import { Toaster } from "sonner";
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <FontSizeProvider>
           <AuthProvider>
             <Nav />
+            <MobileHeader />
             <main className="max-w-5xl mx-auto px-4 pt-4 pb-24 md:pt-6 md:pb-8">
               {children}
             </main>
