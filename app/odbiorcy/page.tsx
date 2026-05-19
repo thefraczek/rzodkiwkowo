@@ -60,9 +60,9 @@ export default function OdbiorcyPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 mb-4">
         <h1 className="text-xl font-bold text-gray-900">Odbiorcy</h1>
-        <Button onClick={openNew}>+ Dodaj odbiorcę</Button>
+        <Button size='sm' onClick={openNew}>+ Dodaj odbiorcę</Button>
       </div>
 
       <div className="bg-white rounded-2xl border divide-y overflow-hidden">

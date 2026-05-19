@@ -102,11 +102,11 @@ export default function NawozyPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 mb-4">
         <h1 className="text-xl font-bold text-gray-900">Nawożenie</h1>
-        <div className="flex gap-2">
+        <div className="flex gap-2 ml-auto">
           <Button variant="outline" size="sm" onClick={() => setOpenSlownik(true)}>Słownik</Button>
-          <Button onClick={openNew}>+ Dodaj</Button>
+          <Button size="sm" onClick={openNew}>+ Dodaj</Button>
         </div>
       </div>
 
