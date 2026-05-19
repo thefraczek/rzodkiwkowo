@@ -83,13 +83,28 @@ export default function Home() {
   const [wydajZaplacono, setWydajZaplacono] = useState('')
 
   async function load() {
-    const [f, n, o] = await Promise.all([
+    const [f, n, o, s] = await Promise.all([
       supabase.from('folie').select('*').order('nazwa'),
       supabase.from('nasiona').select('*').order('nazwa'),
       supabase.from('odbiorcy').select('*').order('ksywa'),
+      supabase.from('sianie').select('folia_id, data').order('data', { ascending: true }),
     ])
 
-    setFolie((f.data as Folia[]) ?? [])
+    const rawFolie = (f.data as Folia[]) ?? []
+    const oldestSowing = new Map<number, string>()
+    for (const row of s.data ?? []) {
+      if (row.folia_id && !oldestSowing.has(row.folia_id)) oldestSowing.set(row.folia_id, row.data)
+    }
+    const sortedFolie = [...rawFolie].sort((a, b) => {
+      const aD = oldestSowing.get(a.id)
+      const bD = oldestSowing.get(b.id)
+      if (aD && bD) return aD.localeCompare(bD)
+      if (aD) return -1
+      if (bD) return 1
+      return 0
+    })
+
+    setFolie(sortedFolie)
     setNasiona((n.data as { id: number; nazwa: string }[]) ?? [])
     setOdbiorcy((o.data as Odbiorca[]) ?? [])
   }

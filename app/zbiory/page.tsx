@@ -34,12 +34,27 @@ export default function ZbioryPage() {
   const [confirmAction, setConfirmAction] = useState<(() => Promise<void>) | null>(null)
 
   async function load() {
-    const [z, f] = await Promise.all([
+    const [z, f, s] = await Promise.all([
       supabase.from('zbiory').select('*, folie(nazwa)').order('data_zbioru', { ascending: false }),
       supabase.from('folie').select('*').order('nazwa'),
+      supabase.from('sianie').select('folia_id, data').order('data', { ascending: true }),
     ])
+    const rawFolie = (f.data as Folia[]) ?? []
+    // oldest sowing date per folia
+    const oldestSowing = new Map<number, string>()
+    for (const row of s.data ?? []) {
+      if (row.folia_id && !oldestSowing.has(row.folia_id)) oldestSowing.set(row.folia_id, row.data)
+    }
+    const sorted = [...rawFolie].sort((a, b) => {
+      const aD = oldestSowing.get(a.id)
+      const bD = oldestSowing.get(b.id)
+      if (aD && bD) return aD.localeCompare(bD)
+      if (aD) return -1
+      if (bD) return 1
+      return 0
+    })
     setZbiory((z.data as Zbior[]) ?? [])
-    setFolie((f.data as Folia[]) ?? [])
+    setFolie(sorted)
   }
 
   useEffect(() => { load() }, [])
