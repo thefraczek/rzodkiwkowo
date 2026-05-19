@@ -343,9 +343,8 @@ export default function Home() {
       </div>
 
       <div className='bg-white border rounded-2xl overflow-hidden'>
-        <div className='px-3 py-2 flex items-center gap-2 border-b'>
-          <h2 className='font-semibold text-gray-800 text-sm'>🗺️ Mapa folii</h2>
-          <span className='text-xs text-gray-400'>Kliknij folię → zasiew / zbiór / oprysk / nawóz</span>
+        <div className='px-3 py-2 flex items-center border-b'>
+          <h2 className='font-semibold text-gray-800 text-sm flex-1'>Folie</h2>
         </div>
         <MapView />
       </div>

@@ -29,6 +29,7 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
   const [dragging, setDragging] = useState<{ id: number; startX: number; startY: number; origX: number; origY: number } | null>(null)
   const [dragMoved, setDragMoved] = useState(false)
   const [svgRef, setSvgRef] = useState<SVGSVGElement | null>(null)
+  const [zoom, setZoom] = useState(1)
 
   const [sianie, setSianie] = useState({ nasiona_id: '', uwagi: '' })
   const [zbior, setZbior] = useState({ jedynka_klatki: '', dwojka_klatki: '', ilosc_w_klatce: '25', uwagi: '' })
@@ -38,8 +39,8 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
   async function load() {
     const [f, n, nw] = await Promise.all([
       supabase.from('folie').select('*').order('nazwa'),
-      supabase.from('nasiona').select('*').order('nazwa'),
-      supabase.from('nawozy_slownik').select('*').order('nazwa'),
+      supabase.from('nasiona').select('*').eq('archived', false).order('nazwa'),
+      supabase.from('nawozy_slownik').select('*').eq('archived', false).order('nazwa'),
     ])
     setFolie(f.data ?? [])
     setNasiona(n.data ?? [])
@@ -223,11 +224,23 @@ export default function MapView({ allowEdit = false, reloadSignal = 0 }: { allow
           Brak folii. <a href="/folie" className="text-green-600 underline">Dodaj folię</a> najpierw.
         </div>
       ) : (
-        <div className="overflow-auto">
+        <div className="relative overflow-auto">
+          <div className="absolute top-2 right-2 z-10 flex gap-1">
+            <button
+              onClick={() => setZoom(z => Math.min(3, +(z + 0.25).toFixed(2)))}
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-gray-200 shadow-sm text-gray-600 hover:bg-gray-50 active:bg-gray-100 text-lg font-bold leading-none transition-colors"
+              title="Przybliż"
+            >+</button>
+            <button
+              onClick={() => setZoom(z => Math.max(0.5, +(z - 0.25).toFixed(2)))}
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-gray-200 shadow-sm text-gray-600 hover:bg-gray-50 active:bg-gray-100 text-lg font-bold leading-none transition-colors"
+              title="Oddal"
+            >−</button>
+          </div>
           <svg
             ref={el => setSvgRef(el)}
             viewBox={viewBox}
-            style={{ width: '100%', maxWidth: SVG_W, height: 'auto', display: 'block', cursor: dragging ? 'grabbing' : 'default' }}
+            style={{ width: `${zoom * 100}%`, minWidth: zoom > 1 ? `${zoom * 100}%` : undefined, maxWidth: zoom <= 1 ? SVG_W : undefined, height: 'auto', display: 'block', cursor: dragging ? 'grabbing' : 'default' }}
             onMouseMove={onMouseMove}
             onMouseUp={onMouseUp}
             onMouseLeave={onMouseUp}
