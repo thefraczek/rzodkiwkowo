@@ -161,11 +161,8 @@ export default function ZbioryPage() {
           const suma = peczki(z.ilosc_klatek, z.ilosc_w_klatce)
           return (
             <div key={z.id} className='flex items-center gap-3 px-4 py-3.5 active:bg-gray-50'>
-              <div className='bg-orange-100 rounded-xl p-2.5 shrink-0 flex flex-col items-center w-14'>
+              <div className='bg-orange-100 rounded-xl p-2.5 shrink-0 flex items-center justify-center w-12 h-12'>
                 <span className='text-xl leading-none'>🥕</span>
-                {z.ilosc_klatek != null && (
-                  <span className='text-[11px] font-bold text-orange-700 mt-0.5 leading-none'>{z.ilosc_klatek} kl.</span>
-                )}
               </div>
 
               <div className='flex-1 min-w-0'>
@@ -177,8 +174,12 @@ export default function ZbioryPage() {
                     <span className='text-gray-400'> · {z.ilosc_w_klatce} szt./kl.</span>
                   )}
                 </p>
-                {suma != null && (
-                  <p className='text-sm font-medium text-orange-600'>{suma} pęczków</p>
+                {(z.ilosc_klatek != null || suma != null) && (
+                  <p className='text-sm font-medium text-orange-600'>
+                    {z.ilosc_klatek != null && <span>{z.ilosc_klatek} kl.</span>}
+                    {z.ilosc_klatek != null && suma != null && <span className='text-orange-300'> · </span>}
+                    {suma != null && <span>{suma} pęczków</span>}
+                  </p>
                 )}
                 {z.uwagi && <p className='text-xs text-gray-400 mt-0.5 truncate'>{z.uwagi}</p>}
               </div>
