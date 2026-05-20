@@ -18,7 +18,7 @@ function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   )
 }
 
-function SelectValue({ className, children, placeholder, ...props }: SelectPrimitive.Value.Props) {
+function SelectValue({ className, children, placeholder, ...props }: Omit<SelectPrimitive.Value.Props, 'children'> & { children?: React.ReactNode }) {
   // If children is explicitly provided (non-empty), render it directly —
   // this bypasses Base UI's internal item-label lookup which only works
   // when SelectContent is open. Falls back to Base UI when no children.
