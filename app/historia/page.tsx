@@ -163,7 +163,7 @@ function HistoriaInner() {
       </div>
 
       <div className='mb-5'>
-        <Select key={folie.length} value={selectedId} onValueChange={setSelectedId}>
+        <Select key={folie.length} value={selectedId} onValueChange={v => setSelectedId(v ?? '')}>
           <SelectTrigger className='bg-white'>
             <SelectValue placeholder='Wybierz folię'>{folie.find(f => String(f.id) === selectedId)?.nazwa}</SelectValue>
           </SelectTrigger>
