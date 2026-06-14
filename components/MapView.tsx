@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { formatDatePL } from '@/lib/date'
 
-type Akcja = 'sianie' | 'zbior' | 'oprysk' | 'nawoz' | null
+type Akcja = 'sianie' | 'zbior' | 'oprysk' | 'nawoz' | 'podlej' | null
 type Info = { ostatnieSianie: string | null; ostatniZbior: string | null; klatek: number }
 
 const KOLORY = ['#86efac', '#fde68a', '#fdba74', '#a5b4fc', '#f9a8d4', '#67e8f9', '#d1d5db']
@@ -35,6 +35,7 @@ export default function MapView({ allowEdit = false, reloadSignal = 0, zoom = 1 
   const [zbior, setZbior] = useState({ jedynka_klatki: '', dwojka_klatki: '', ilosc_w_klatce: '25', uwagi: '' })
   const [oprysk, setOprysk] = useState({ preparat: '', uwagi: '' })
   const [nawoz, setNawoz] = useState({ nawoz_id: '', ilosc: '', jednostka: 'kg' })
+  const [podlMin, setPodlMin] = useState('10')
 
   async function load() {
     const [f, n, nw] = await Promise.all([
@@ -191,6 +192,23 @@ export default function MapView({ allowEdit = false, reloadSignal = 0, zoom = 1 
     setAkcja(null)
   }
 
+  async function savePodlej() {
+    if (!selected?.kanal_zaworu) { toast.error('Ta folia nie ma przypisanego zaworu'); return }
+    const { data: akt } = await supabase.from('nawadnianie').select('id')
+      .eq('folia_id', selected.id).in('status', ['oczekuje', 'w_trakcie']).limit(1)
+    if (akt && akt.length > 0) { toast.error('Ta folia jest już podlewana lub czeka w kolejce'); setAkcja(null); return }
+    const { error } = await supabase.from('nawadnianie').insert({
+      folia_id: selected.id,
+      strefa: selected.kanal_zaworu,
+      czas_minut: Number(podlMin),
+      zrodlo: 'reczne',
+    })
+    if (error) { toast.error('Błąd: ' + error.message); return }
+    toast.success(`Zlecono podlewanie — ${selected.nazwa} (${podlMin} min)`)
+    setPodlMin('10')
+    setAkcja(null)
+  }
+
   return (
     <div>
       {allowEdit && (
@@ -298,6 +316,11 @@ export default function MapView({ allowEdit = false, reloadSignal = 0, zoom = 1 
               <span className="text-lg">🌿</span><span className="text-xs">Nawóz</span>
             </Button>
           </div>
+          {selected?.kanal_zaworu != null && (
+            <Button className="bg-cyan-600 hover:bg-cyan-700 text-white w-full h-12 flex items-center justify-center gap-1.5 mt-2" onClick={() => setAkcja('podlej')}>
+              <span className="text-lg">💦</span><span className="text-sm">Podlej</span>
+            </Button>
+          )}
           <Link
             href={`/historia?folia=${selected?.id}`}
             onClick={() => setSelected(null)}
@@ -444,6 +467,27 @@ export default function MapView({ allowEdit = false, reloadSignal = 0, zoom = 1 
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setAkcja(null)}>Anuluj</Button>
               <Button className="bg-yellow-600 hover:bg-yellow-700" onClick={saveNawoz}>Dodaj dzisiaj</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={akcja === 'podlej'} onOpenChange={o => { if (!o) setAkcja(null) }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>💦 Podlej — {selected?.nazwa}</DialogTitle></DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div className="flex gap-2">
+              {['5', '10', '15', '20'].map(m => (
+                <button key={m} onClick={() => setPodlMin(m)} className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-semibold transition-colors ${podlMin === m ? 'border-cyan-500 bg-cyan-50 text-cyan-700' : 'border-gray-200 text-gray-500'}`}>{m} min</button>
+              ))}
+            </div>
+            <div>
+              <Label>Czas (minuty)</Label>
+              <Input type="number" value={podlMin} onChange={e => setPodlMin(e.target.value)} min="1" max="120" />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setAkcja(null)}>Anuluj</Button>
+              <Button className="bg-cyan-600 hover:bg-cyan-700" onClick={savePodlej} disabled={!podlMin || Number(podlMin) < 1}>Zleć podlewanie</Button>
             </div>
           </div>
         </DialogContent>
