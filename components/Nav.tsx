@@ -15,6 +15,7 @@ const links = [
   { href: '/odbiorcy', label: 'Odbiorcy' },
   { href: '/opryski', label: 'Opryski' },
   { href: '/nawozy', label: 'Nawozy' },
+  { href: '/nawadnianie', label: 'Nawadnianie' },
 ]
 
 export default function Nav() {

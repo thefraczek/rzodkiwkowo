@@ -11,7 +11,7 @@ import { formatDatePL } from '@/lib/date'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus'
 
-const empty = { nazwa: '', data_nalozenia: '', szerokosc: '160', wysokosc: '80' }
+const empty = { nazwa: '', data_nalozenia: '', szerokosc: '160', wysokosc: '80', kanal_zaworu: '' }
 
 export default function FoliePage() {
   const [folie, setFolie] = useState<Folia[]>([])
@@ -30,12 +30,12 @@ export default function FoliePage() {
 
   function openNew() { setForm(empty); setEditId(null); setOpen(true) }
   function openEdit(f: Folia) {
-    setForm({ nazwa: f.nazwa, data_nalozenia: f.data_nalozenia ?? '', szerokosc: String(f.szerokosc), wysokosc: String(f.wysokosc) })
+    setForm({ nazwa: f.nazwa, data_nalozenia: f.data_nalozenia ?? '', szerokosc: String(f.szerokosc), wysokosc: String(f.wysokosc), kanal_zaworu: f.kanal_zaworu != null ? String(f.kanal_zaworu) : '' })
     setEditId(f.id); setOpen(true)
   }
 
   async function save() {
-    const payload = { nazwa: form.nazwa, data_nalozenia: form.data_nalozenia || null, szerokosc: form.szerokosc ? Number(form.szerokosc) : 160, wysokosc: form.wysokosc ? Number(form.wysokosc) : 80 }
+    const payload = { nazwa: form.nazwa, data_nalozenia: form.data_nalozenia || null, szerokosc: form.szerokosc ? Number(form.szerokosc) : 160, wysokosc: form.wysokosc ? Number(form.wysokosc) : 80, kanal_zaworu: form.kanal_zaworu ? Number(form.kanal_zaworu) : null }
     const { error } = editId
       ? await supabase.from('folie').update(payload).eq('id', editId)
       : await supabase.from('folie').insert(payload)
@@ -70,6 +70,7 @@ export default function FoliePage() {
               <p className="font-semibold text-gray-900">{f.nazwa}</p>
               <p className="text-sm text-gray-500">
                 {f.szerokosc} × {f.wysokosc} px
+                {f.kanal_zaworu != null && <span> · zawór {f.kanal_zaworu}</span>}
                 {f.data_nalozenia && <span> · Od {formatDatePL(f.data_nalozenia)}</span>}
               </p>
             </div>
@@ -107,7 +108,11 @@ export default function FoliePage() {
                 <Input type="number" value={form.wysokosc} onChange={e => setForm(f => ({ ...f, wysokosc: e.target.value }))} min="30" max="300" />
               </div>
             </div>
-            <p className="text-xs text-gray-400">Pozycję i kolor na mapie możesz zmieniać w widoku Mapy.</p>
+            <div>
+              <Label>Kanał zaworu (nawadnianie)</Label>
+              <Input type="number" value={form.kanal_zaworu} onChange={e => setForm(f => ({ ...f, kanal_zaworu: e.target.value }))} min="1" max="8" placeholder="np. 1 (puste = brak zaworu)" />
+            </div>
+            <p className="text-xs text-gray-400">Kanał zaworu to numer wyjścia sterownika (1–8) podłączony do tej folii. Pozycję i kolor na mapie zmienisz w widoku Mapy.</p>
             <div className="flex gap-2 pt-1">
               <Button variant="outline" onClick={() => setOpen(false)} className="flex-1">Anuluj</Button>
               <Button onClick={save} disabled={!form.nazwa} className="flex-1">Zapisz</Button>

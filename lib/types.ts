@@ -18,6 +18,7 @@ export type Folia = {
   szerokosc: number
   wysokosc: number
   kolor: string
+  kanal_zaworu: number | null
   created_at: string
 }
 
@@ -99,4 +100,26 @@ export type Oprysk = {
   uwagi: string | null
   created_at: string
   folie?: Folia
+}
+
+export type Nawadnianie = {
+  id: number
+  folia_id: number | null
+  strefa: number
+  czas_minut: number
+  zrodlo: 'reczne' | 'harmonogram'
+  status: 'oczekuje' | 'w_trakcie' | 'zakonczone' | 'blad'
+  harmonogram_id: number | null
+  created_at: string
+  rozpoczeto: string | null
+  zakonczono: string | null
+  folie?: Folia
+}
+
+export type NawadnianieSterownik = {
+  id: number
+  ostatni_kontakt: string | null
+  zasieg: number | null
+  strefy_otwarte: number | null
+  uptime_s: number | null
 }
