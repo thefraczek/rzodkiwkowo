@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Folia, Nawadnianie, NawadnianieSterownik } from '@/lib/types'
 import { toast } from 'sonner'
@@ -37,6 +37,22 @@ export default function NawadnianiePage() {
 
   useEffect(() => { load() }, [])
   useRefreshOnFocus(load)
+
+  // auto-odświeżanie: co 5 s gdy coś w toku, co 30 s gdy bezczynnie (tylko gdy karta widoczna)
+  const cosWToku = aktywne.length > 0
+  const cosWTokuRef = useRef(cosWToku)
+  cosWTokuRef.current = cosWToku
+  useEffect(() => {
+    let stop = false
+    let timer: ReturnType<typeof setTimeout>
+    const tick = () => {
+      if (stop) return
+      if (typeof document === 'undefined' || document.visibilityState === 'visible') load()
+      timer = setTimeout(tick, cosWTokuRef.current ? 5000 : 30000)
+    }
+    timer = setTimeout(tick, cosWTokuRef.current ? 5000 : 30000)
+    return () => { stop = true; clearTimeout(timer) }
+  }, [])
 
   function openPodlej(f: Folia) { setWybrana(f); setMinuty('10'); setOpen(true) }
 

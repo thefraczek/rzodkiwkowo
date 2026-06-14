@@ -8,15 +8,15 @@ import { useFontSize } from './FontSizeProvider'
 
 const primary = [
   { href: '/', icon: '🏠', label: 'Pulpit' },
-  { href: '/zamowienia', icon: '📦', label: 'Zamówienia' },
-  { href: '/zbiory', icon: '🥕', label: 'Zbiory' },
+  { href: '/nawadnianie', icon: '💦', label: 'Podlewanie' },
   { href: '/sianie', icon: '🌱', label: 'Sianie' },
+  { href: '/podsumowania', icon: '📊', label: 'Podsumowania' },
 ]
 
 const moreOperacyjne = [
-  { href: '/podsumowania', icon: '📊', label: 'Podsumowania' },
+  { href: '/zamowienia', icon: '📦', label: 'Zamówienia' },
+  { href: '/zbiory', icon: '🥕', label: 'Zbiory' },
   { href: '/historia', icon: '📅', label: 'Historia' },
-  { href: '/nawadnianie', icon: '💦', label: 'Nawadnianie' },
   { href: '/dostawy', icon: '🚚', label: 'Dostawy' },
   { href: '/opryski', icon: '💧', label: 'Opryski' },
   { href: '/nawozy', icon: '🌿', label: 'Nawozy' },

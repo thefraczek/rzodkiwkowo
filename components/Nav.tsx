@@ -6,16 +6,16 @@ import { supabase } from '@/lib/supabase'
 
 const links = [
   { href: '/', label: 'Pulpit' },
-  { href: '/podsumowania', label: 'Podsumowania' },
-  { href: '/mapa', label: 'Folie' },
+  { href: '/nawadnianie', label: 'Podlewanie' },
   { href: '/sianie', label: 'Sianie' },
+  { href: '/podsumowania', label: 'Podsumowania' },
   { href: '/zbiory', label: 'Zbiory' },
-  { href: '/dostawy', label: 'Dostawy' },
   { href: '/zamowienia', label: 'Zamówienia' },
-  { href: '/odbiorcy', label: 'Odbiorcy' },
+  { href: '/dostawy', label: 'Dostawy' },
+  { href: '/mapa', label: 'Folie' },
   { href: '/opryski', label: 'Opryski' },
   { href: '/nawozy', label: 'Nawozy' },
-  { href: '/nawadnianie', label: 'Nawadnianie' },
+  { href: '/odbiorcy', label: 'Odbiorcy' },
 ]
 
 export default function Nav() {
