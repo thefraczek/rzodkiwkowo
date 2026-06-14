@@ -61,6 +61,10 @@ export default function NawadnianiePage() {
 
   async function podlej() {
     if (!wybrana) return
+    if (aktywne.some(a => a.folia_id === wybrana.id)) {
+      toast.error('Ta folia jest już podlewana lub czeka w kolejce')
+      setOpen(false); return
+    }
     const { error } = await supabase.from('nawadnianie').insert({
       folia_id: wybrana.id,
       strefa: wybrana.kanal_zaworu,
@@ -75,6 +79,8 @@ export default function NawadnianiePage() {
   const online = !!sterownik?.ostatni_kontakt &&
     (Date.now() - new Date(sterownik.ostatni_kontakt).getTime() < 12 * 60 * 1000)
   const zZaworem = folie.filter(f => f.kanal_zaworu != null)
+  const statusFolii = new Map<number, string>()
+  aktywne.forEach(a => { if (a.folia_id != null) statusFolii.set(a.folia_id, a.status) })
 
   return (
     <div>
@@ -138,16 +144,25 @@ export default function NawadnianiePage() {
             Żadna folia nie ma przypisanego zaworu.<br />Ustaw „kanał zaworu" w sekcji Folie.
           </div>
         )}
-        {zZaworem.map(f => (
-          <div key={f.id} className="flex items-center gap-3 px-4 py-3.5">
-            <div className="w-3 self-stretch rounded-full shrink-0" style={{ background: f.kolor ?? '#d1d5db' }} />
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-gray-900">{f.nazwa}</p>
-              <p className="text-sm text-gray-500">zawór {f.kanal_zaworu}</p>
+        {zZaworem.map(f => {
+          const st = statusFolii.get(f.id)
+          return (
+            <div key={f.id} className="flex items-center gap-3 px-4 py-3.5">
+              <div className="w-3 self-stretch rounded-full shrink-0" style={{ background: f.kolor ?? '#d1d5db' }} />
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-gray-900">{f.nazwa}</p>
+                <p className="text-sm text-gray-500">zawór {f.kanal_zaworu}</p>
+              </div>
+              {st === 'w_trakcie' ? (
+                <span className="text-sm font-medium text-blue-600 shrink-0">💦 Podlewa</span>
+              ) : st === 'oczekuje' ? (
+                <span className="text-sm font-medium text-amber-600 shrink-0">⏳ W kolejce</span>
+              ) : (
+                <Button size='sm' onClick={() => openPodlej(f)}>💦 Podlej</Button>
+              )}
             </div>
-            <Button size='sm' onClick={() => openPodlej(f)}>💦 Podlej</Button>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* ostatnie podlewania */}
