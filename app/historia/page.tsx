@@ -8,7 +8,7 @@ import { formatDatePL } from '@/lib/date'
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
-type EventType = 'sianie' | 'zbior' | 'oprysk' | 'nawoz'
+type EventType = 'sianie' | 'zbior' | 'oprysk' | 'nawoz' | 'podlej'
 
 type TimelineEvent = {
   id: string
@@ -17,6 +17,7 @@ type TimelineEvent = {
   title: string
   detail?: string
   uwagi?: string | null
+  folia?: string
 }
 
 const TYPE_META: Record<EventType, { icon: string; color: string; bg: string; dot: string }> = {
@@ -24,14 +25,18 @@ const TYPE_META: Record<EventType, { icon: string; color: string; bg: string; do
   zbior:  { icon: '🥕', color: 'text-orange-700', bg: 'bg-orange-50 border-orange-200', dot: 'bg-orange-500' },
   oprysk: { icon: '💧', color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200', dot: 'bg-blue-500' },
   nawoz:  { icon: '🌿', color: 'text-yellow-700', bg: 'bg-yellow-50 border-yellow-200', dot: 'bg-yellow-500' },
+  podlej: { icon: '💦', color: 'text-cyan-700', bg: 'bg-cyan-50 border-cyan-200', dot: 'bg-cyan-500' },
 }
+
+const warsawDate = (iso: string) => new Date(iso).toLocaleDateString('sv-SE', { timeZone: 'Europe/Warsaw' })
+const warsawTime = (iso: string) => new Date(iso).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Warsaw' })
 
 function HistoriaInner() {
   const searchParams = useSearchParams()
   const foliaParam = searchParams.get('folia')
 
   const [folie, setFolie] = useState<Folia[]>([])
-  const [selectedId, setSelectedId] = useState<string>(foliaParam ?? '')
+  const [selectedId, setSelectedId] = useState<string>(foliaParam ?? 'wszystkie')
   const [events, setEvents] = useState<TimelineEvent[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -62,29 +67,27 @@ function HistoriaInner() {
     }
   }
 
-  async function loadHistory(foliaId: string) {
-    if (!foliaId) return
+  async function loadHistory(sel: string) {
+    if (!sel) return
     setLoading(true)
-    const id = Number(foliaId)
+    const all = sel === 'wszystkie'
+    const id = all ? null : Number(sel)
+    const filt = (q: any) => (all ? q : q.eq('folia_id', id))
 
-    const [si, zb, op, nw] = await Promise.all([
-      supabase.from('sianie').select('id, data, uwagi, nasiona(nazwa)').eq('folia_id', id).order('data', { ascending: false }),
-      supabase.from('zbiory').select('id, data_zbioru, typ, ilosc_klatek, ilosc_w_klatce, uwagi').eq('folia_id', id).order('data_zbioru', { ascending: false }),
-      supabase.from('opryski').select('id, data, preparat, uwagi').eq('folia_id', id).order('data', { ascending: false }),
-      supabase.from('nawozenie').select('id, data, uwagi, nawozenie_pozycje(ilosc, jednostka, nawozy_slownik(nazwa))').eq('folia_id', id).order('data', { ascending: false }),
+    const [si, zb, op, nw, pod] = await Promise.all([
+      filt(supabase.from('sianie').select('id, data, uwagi, nasiona(nazwa), folie(nazwa)').order('data', { ascending: false })),
+      filt(supabase.from('zbiory').select('id, data_zbioru, typ, ilosc_klatek, ilosc_w_klatce, uwagi, folie(nazwa)').order('data_zbioru', { ascending: false })),
+      filt(supabase.from('opryski').select('id, data, preparat, uwagi, folie(nazwa)').order('data', { ascending: false })),
+      filt(supabase.from('nawozenie').select('id, data, uwagi, folie(nazwa), nawozenie_pozycje(ilosc, jednostka, nawozy_slownik(nazwa))').order('data', { ascending: false })),
+      filt(supabase.from('nawadnianie').select('id, czas_minut, rozpoczeto, zakonczono, created_at, folie(nazwa)').eq('status', 'zakonczone').order('rozpoczeto', { ascending: false })),
     ])
 
     const result: TimelineEvent[] = []
 
     for (const r of si.data ?? []) {
-      const nasiona = (r as any).nasiona?.nazwa
       result.push({
-        id: `sianie-${r.id}`,
-        type: 'sianie',
-        date: r.data,
-        title: 'Zasiew',
-        detail: nasiona ?? undefined,
-        uwagi: r.uwagi,
+        id: `sianie-${r.id}`, type: 'sianie', date: r.data, title: 'Zasiew',
+        detail: (r as any).nasiona?.nazwa ?? undefined, uwagi: r.uwagi, folia: (r as any).folie?.nazwa,
       })
     }
 
@@ -93,23 +96,15 @@ function HistoriaInner() {
       const pwk = r.ilosc_w_klatce ?? 25
       const typ = r.typ === 'dwojka' ? 'Dwójka' : 'Jedynka'
       result.push({
-        id: `zbior-${r.id}`,
-        type: 'zbior',
-        date: r.data_zbioru,
-        title: `Zbiór — ${typ}`,
-        detail: kl ? `${kl} kl. · ${kl * pwk} pęczków` : undefined,
-        uwagi: r.uwagi,
+        id: `zbior-${r.id}`, type: 'zbior', date: r.data_zbioru, title: `Zbiór — ${typ}`,
+        detail: kl ? `${kl} kl. · ${kl * pwk} pęczków` : undefined, uwagi: r.uwagi, folia: (r as any).folie?.nazwa,
       })
     }
 
     for (const r of op.data ?? []) {
       result.push({
-        id: `oprysk-${r.id}`,
-        type: 'oprysk',
-        date: r.data,
-        title: 'Oprysk',
-        detail: (r as any).preparat ?? undefined,
-        uwagi: r.uwagi,
+        id: `oprysk-${r.id}`, type: 'oprysk', date: r.data, title: 'Oprysk',
+        detail: (r as any).preparat ?? undefined, uwagi: r.uwagi, folia: (r as any).folie?.nazwa,
       })
     }
 
@@ -118,12 +113,17 @@ function HistoriaInner() {
         .map((p: any) => `${p.nawozy_slownik?.nazwa ?? '?'}${p.ilosc ? ` ${p.ilosc}${p.jednostka}` : ''}`)
         .join(', ')
       result.push({
-        id: `nawoz-${r.id}`,
-        type: 'nawoz',
-        date: r.data,
-        title: 'Nawożenie',
-        detail: pozycje || undefined,
-        uwagi: r.uwagi,
+        id: `nawoz-${r.id}`, type: 'nawoz', date: r.data, title: 'Nawożenie',
+        detail: pozycje || undefined, uwagi: r.uwagi, folia: (r as any).folie?.nazwa,
+      })
+    }
+
+    for (const r of pod.data ?? []) {
+      const when = r.rozpoczeto ?? r.zakonczono ?? r.created_at
+      result.push({
+        id: `podlej-${r.id}`, type: 'podlej', date: when ? warsawDate(when) : '', title: 'Podlewanie',
+        detail: `${r.czas_minut} min${r.rozpoczeto ? ` · o ${warsawTime(r.rozpoczeto)}` : ''}`,
+        folia: (r as any).folie?.nazwa,
       })
     }
 
@@ -156,18 +156,19 @@ function HistoriaInner() {
   return (
     <div>
       <div className='mb-4'>
-        <h1 className='text-xl font-bold text-gray-900'>Historia folii</h1>
+        <h1 className='text-xl font-bold text-gray-900'>Historia</h1>
         {selectedFolia?.metry_kwadratowe && (
           <p className='text-[11px] text-gray-400'>{selectedFolia.metry_kwadratowe} m²</p>
         )}
       </div>
 
       <div className='mb-5'>
-        <Select key={folie.length} value={selectedId} onValueChange={v => setSelectedId(v ?? '')}>
+        <Select key={folie.length} value={selectedId} onValueChange={v => setSelectedId(v ?? 'wszystkie')}>
           <SelectTrigger className='bg-white'>
-            <SelectValue placeholder='Wybierz folię'>{folie.find(f => String(f.id) === selectedId)?.nazwa}</SelectValue>
+            <SelectValue placeholder='Wybierz'>{selectedId === 'wszystkie' ? 'Całe gospodarstwo' : folie.find(f => String(f.id) === selectedId)?.nazwa}</SelectValue>
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value='wszystkie'>Całe gospodarstwo</SelectItem>
             {folie.map(f => (
               <SelectItem key={f.id} value={String(f.id)}>{f.nazwa}</SelectItem>
             ))}
@@ -180,7 +181,7 @@ function HistoriaInner() {
       )}
 
       {!loading && events.length === 0 && selectedId && (
-        <div className='py-12 text-center text-gray-400 text-sm'>Brak zdarzeń dla tej folii</div>
+        <div className='py-12 text-center text-gray-400 text-sm'>Brak zdarzeń</div>
       )}
 
       {!loading && Object.keys(grouped).length > 0 && (
@@ -212,6 +213,9 @@ function HistoriaInner() {
                             <p className={`font-semibold text-sm ${meta.color}`}>{ev.title}</p>
                             <span className='text-[11px] text-gray-400 shrink-0'>{formatDatePL(ev.date)}</span>
                           </div>
+                          {selectedId === 'wszystkie' && ev.folia && (
+                            <p className='text-xs font-medium text-gray-500 mt-0.5'>{ev.folia}</p>
+                          )}
                           {ev.detail && (
                             <p className='text-sm text-gray-600 mt-0.5'>{ev.detail}</p>
                           )}
