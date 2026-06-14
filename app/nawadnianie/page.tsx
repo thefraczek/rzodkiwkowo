@@ -13,6 +13,9 @@ const STATUS_LABEL: Record<string, string> = {
   oczekuje: 'Czeka w kolejce', w_trakcie: 'Podlewa', zakonczone: 'Zakończone', blad: 'Błąd',
 }
 
+const godz = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : '—'
+
 export default function NawadnianiePage() {
   const [folie, setFolie] = useState<Folia[]>([])
   const [aktywne, setAktywne] = useState<Nawadnianie[]>([])
@@ -102,15 +105,27 @@ export default function NawadnianiePage() {
         <div className="mb-4">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1 mb-2">Trwające i w kolejce</p>
           <div className="bg-white rounded-2xl border divide-y overflow-hidden">
-            {aktywne.map(a => (
-              <div key={a.id} className="flex items-center gap-3 px-4 py-3">
-                <span className="text-xl leading-none">{a.status === 'w_trakcie' ? '💦' : '⏳'}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900">{(a.folie as any)?.nazwa ?? `Strefa ${a.strefa}`}</p>
-                  <p className="text-sm text-gray-500">{a.czas_minut} min · {STATUS_LABEL[a.status]}</p>
+            {aktywne.map(a => {
+              const start = a.rozpoczeto ? new Date(a.rozpoczeto) : null
+              const koniec = start ? new Date(start.getTime() + a.czas_minut * 60000) : null
+              const pozostalo = koniec ? Math.max(0, Math.round((koniec.getTime() - Date.now()) / 60000)) : null
+              return (
+                <div key={a.id} className="flex items-center gap-3 px-4 py-3">
+                  <span className="text-xl leading-none">{a.status === 'w_trakcie' ? '💦' : '⏳'}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900">{(a.folie as any)?.nazwa ?? `Strefa ${a.strefa}`}</p>
+                    {a.status === 'w_trakcie' && start ? (
+                      <p className="text-sm text-gray-500">
+                        Otwarte o {godz(a.rozpoczeto)} · {a.czas_minut} min
+                        {pozostalo != null && <span> · pozostało ~{pozostalo} min</span>}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-gray-500">{a.czas_minut} min · {STATUS_LABEL[a.status]}</p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}
