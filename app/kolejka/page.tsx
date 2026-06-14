@@ -130,7 +130,7 @@ export default function KolejkaPage() {
                 <Label>Min</Label>
                 <Input type="number" value={minuty} onChange={e => setMinuty(e.target.value)} min="1" max="120" />
               </div>
-              <Button size='sm' onClick={dodajKrok} disabled={!foliaId} className="h-10">+ Dodaj</Button>
+              <Button size='sm' onClick={dodajKrok} disabled={!foliaId} className="h-12 shrink-0">+ Dodaj</Button>
             </div>
 
             {kroki.length > 0 && (
