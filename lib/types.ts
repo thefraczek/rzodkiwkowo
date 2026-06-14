@@ -107,9 +107,10 @@ export type Nawadnianie = {
   folia_id: number | null
   strefa: number
   czas_minut: number
-  zrodlo: 'reczne' | 'harmonogram'
-  status: 'oczekuje' | 'w_trakcie' | 'zakonczone' | 'blad'
+  zrodlo: 'reczne' | 'harmonogram' | 'kolejka'
+  status: 'oczekuje' | 'w_trakcie' | 'zakonczone' | 'blad' | 'wstrzymane'
   harmonogram_id: number | null
+  kolejnosc: number | null
   created_at: string
   rozpoczeto: string | null
   zakonczono: string | null
@@ -122,4 +123,14 @@ export type NawadnianieSterownik = {
   zasieg: number | null
   strefy_otwarte: number | null
   uptime_s: number | null
+}
+
+export type NawadnianieHarmonogram = {
+  id: number
+  folia_id: number
+  godzina: string
+  czas_minut: number
+  aktywny: boolean
+  created_at: string
+  folie?: Folia
 }

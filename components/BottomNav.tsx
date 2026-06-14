@@ -16,6 +16,8 @@ const primary = [
 const moreOperacyjne = [
   { href: '/zamowienia', icon: '📦', label: 'Zamówienia' },
   { href: '/zbiory', icon: '🥕', label: 'Zbiory' },
+  { href: '/harmonogram', icon: '⏰', label: 'Harmonogram' },
+  { href: '/kolejka', icon: '📋', label: 'Kolejka' },
   { href: '/historia', icon: '📅', label: 'Historia' },
   { href: '/dostawy', icon: '🚚', label: 'Dostawy' },
   { href: '/opryski', icon: '💧', label: 'Opryski' },

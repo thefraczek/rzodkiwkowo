@@ -7,6 +7,8 @@ import { supabase } from '@/lib/supabase'
 const links = [
   { href: '/', label: 'Pulpit' },
   { href: '/nawadnianie', label: 'Podlewanie' },
+  { href: '/harmonogram', label: 'Harmonogram' },
+  { href: '/kolejka', label: 'Kolejka' },
   { href: '/sianie', label: 'Sianie' },
   { href: '/podsumowania', label: 'Podsumowania' },
   { href: '/zbiory', label: 'Zbiory' },

@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import type { Folia, Nawadnianie, NawadnianieSterownik } from '@/lib/types'
 import { toast } from 'sonner'
@@ -14,7 +15,7 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 const godz = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : '—'
+  iso ? new Date(iso).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Warsaw' }) : '—'
 
 export default function NawadnianiePage() {
   const [folie, setFolie] = useState<Folia[]>([])
@@ -86,6 +87,10 @@ export default function NawadnianiePage() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 mb-4">
         <h1 className="text-xl font-bold text-gray-900">Nawadnianie</h1>
+        <div className="flex gap-2">
+          <Link href="/harmonogram" className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 active:bg-gray-100 transition-colors">⏰ Harmonogram</Link>
+          <Link href="/kolejka" className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 active:bg-gray-100 transition-colors">📋 Kolejka</Link>
+        </div>
       </div>
 
       {/* status sterownika */}
@@ -101,7 +106,7 @@ export default function NawadnianiePage() {
         </div>
         <p className="text-xs text-gray-500 mt-1">
           {sterownik?.ostatni_kontakt
-            ? `Ostatni kontakt: ${new Date(sterownik.ostatni_kontakt).toLocaleString('pl-PL')}`
+            ? `Ostatni kontakt: ${new Date(sterownik.ostatni_kontakt).toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' })}`
             : 'Brak kontaktu ze sterownikiem'}
         </p>
       </div>
@@ -176,7 +181,7 @@ export default function NawadnianiePage() {
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-900 truncate">{(o.folie as any)?.nazwa ?? `Strefa ${o.strefa}`}</p>
                   <p className="text-xs text-gray-400">
-                    {o.czas_minut} min · {new Date(o.created_at).toLocaleString('pl-PL')} · {o.zrodlo === 'harmonogram' ? 'harmonogram' : 'ręcznie'}
+                    {o.czas_minut} min · {new Date(o.created_at).toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' })} · {o.zrodlo === 'harmonogram' ? 'harmonogram' : 'ręcznie'}
                   </p>
                 </div>
               </div>
