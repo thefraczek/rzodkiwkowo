@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Folia, Nawadnianie } from '@/lib/types'
 import { toast } from 'sonner'
@@ -33,19 +33,14 @@ export default function KolejkaPage() {
   useEffect(() => { load() }, [])
   useRefreshOnFocus(load)
 
-  const aktRef = useRef(false)
-  aktRef.current = aktywna.length > 0
+  const cosWToku = aktywna.length > 0
   useEffect(() => {
-    let stop = false
-    let t: ReturnType<typeof setTimeout>
-    const tick = () => {
-      if (stop) return
+    const interval = cosWToku ? 5000 : 30000
+    const id = setInterval(() => {
       if (typeof document === 'undefined' || document.visibilityState === 'visible') load()
-      t = setTimeout(tick, aktRef.current ? 5000 : 30000)
-    }
-    t = setTimeout(tick, aktRef.current ? 5000 : 30000)
-    return () => { stop = true; clearTimeout(t) }
-  }, [])
+    }, interval)
+    return () => clearInterval(id)
+  }, [cosWToku])
 
   const zZaworem = folie.filter(f => f.kanal_zaworu != null)
 
