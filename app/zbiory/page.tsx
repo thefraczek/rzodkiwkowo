@@ -25,6 +25,13 @@ function peczki(klatek: number | null, wKlatce: number | null): number | null {
   return klatek * wKlatce
 }
 
+function todayISO() { return new Date().toISOString().slice(0, 10) }
+function minusDays(iso: string, n: number) {
+  const d = new Date(iso + 'T00:00:00Z')
+  d.setUTCDate(d.getUTCDate() - n)
+  return d.toISOString().slice(0, 10)
+}
+
 export default function ZbioryPage() {
   const [zbiory, setZbiory] = useState<Zbior[]>([])
   const [folie, setFolie] = useState<Folia[]>([])
@@ -33,6 +40,7 @@ export default function ZbioryPage() {
   const [editId, setEditId] = useState<number | null>(null)
   const [editTyp, setEditTyp] = useState<'jedynka' | 'dwojka'>('jedynka')
   const [confirmAction, setConfirmAction] = useState<(() => Promise<void>) | null>(null)
+  const [okres, setOkres] = useState<'dzis' | '2dni' | '3dni' | 'wszystko'>('dzis')
 
   async function load() {
     const [z, f, s] = await Promise.all([
@@ -125,10 +133,13 @@ export default function ZbioryPage() {
     })
   }
 
-  const totalKlatki = zbiory.reduce((s, z) => s + (z.ilosc_klatek ?? 0), 0)
-  const totalPeczki = zbiory.reduce((s, z) => s + (peczki(z.ilosc_klatek, z.ilosc_w_klatce) ?? 0), 0)
-  const totalJedynki = zbiory.reduce((s, z) => s + ((z.typ !== 'dwojka' ? z.ilosc_klatek : 0) ?? 0), 0)
-  const totalDwojki = zbiory.reduce((s, z) => s + ((z.typ === 'dwojka' ? z.ilosc_klatek : 0) ?? 0), 0)
+  const okresDni = okres === 'dzis' ? 1 : okres === '2dni' ? 2 : okres === '3dni' ? 3 : null
+  const cutoff = okresDni ? minusDays(todayISO(), okresDni - 1) : null
+  const wOkresie = cutoff ? zbiory.filter(z => z.data_zbioru >= cutoff) : zbiory
+  const sumKlatki = wOkresie.reduce((s, z) => s + (z.ilosc_klatek ?? 0), 0)
+  const sumJedynki = wOkresie.reduce((s, z) => s + ((z.typ !== 'dwojka' ? z.ilosc_klatek : 0) ?? 0), 0)
+  const sumDwojki = wOkresie.reduce((s, z) => s + ((z.typ === 'dwojka' ? z.ilosc_klatek : 0) ?? 0), 0)
+  const sumPeczki = wOkresie.reduce((s, z) => s + (peczki(z.ilosc_klatek, z.ilosc_w_klatce) ?? 0), 0)
 
   const pwk = form.ilosc_w_klatce ? Number(form.ilosc_w_klatce) : 25
   const previewJ = form.jedynka_klatki ? Number(form.jedynka_klatki) * pwk : 0
@@ -138,18 +149,50 @@ export default function ZbioryPage() {
   return (
     <div>
       <div className='flex justify-between items-center gap-2 mb-4'>
-        <div>
-          <h1 className='text-xl font-bold text-gray-900'>Zbiory</h1>
-          {totalKlatki > 0 && (
-            <p className='text-[11px] text-gray-500'>
-              Łącznie: {totalKlatki} kl.
-              {totalJedynki > 0 && <span> · Jedynka: {totalJedynki} kl.</span>}
-              {totalDwojki > 0 && <span> · Dwójka: {totalDwojki} kl.</span>}
-              {totalPeczki > 0 && <span> · {totalPeczki} pęczków</span>}
-            </p>
-          )}
-        </div>
+        <h1 className='text-xl font-bold text-gray-900'>Zbiory</h1>
         <Button size='sm' onClick={openNew} className='shrink-0'>+ Dodaj zbiór</Button>
+      </div>
+
+      {/* podsumowanie wg okresu */}
+      <div className='bg-white rounded-2xl border p-4 mb-4'>
+        <div className='flex gap-1.5 mb-3'>
+          {([
+            { v: 'dzis', label: 'Dziś' },
+            { v: '2dni', label: '2 dni' },
+            { v: '3dni', label: '3 dni' },
+            { v: 'wszystko', label: 'Wszystko' },
+          ] as const).map(o => (
+            <button
+              key={o.v}
+              onClick={() => setOkres(o.v)}
+              className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${okres === o.v ? 'border-orange-400 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-500 active:bg-gray-50'}`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+
+        {wOkresie.length === 0 ? (
+          <p className='text-sm text-gray-400 py-2 text-center'>Brak zbiorów w tym okresie</p>
+        ) : (
+          <div className='flex items-end justify-between'>
+            <div>
+              <p className='text-3xl font-bold text-gray-900 leading-none'>
+                {sumKlatki} <span className='text-base font-medium text-gray-400'>klatek</span>
+              </p>
+              <div className='flex gap-4 mt-2 text-sm'>
+                <span className='text-gray-600'>Jedynka <span className='font-semibold text-gray-900'>{sumJedynki}</span> kl.</span>
+                <span className='text-gray-600'>Dwójka <span className='font-semibold text-gray-900'>{sumDwojki}</span> kl.</span>
+              </div>
+            </div>
+            {sumPeczki > 0 && (
+              <div className='text-right shrink-0'>
+                <p className='text-xl font-bold text-orange-600 leading-none'>{sumPeczki}</p>
+                <p className='text-xs text-gray-400 mt-0.5'>pęczków</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className='bg-white rounded-2xl border divide-y overflow-hidden'>
