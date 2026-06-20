@@ -10,12 +10,12 @@ const primary = [
   { href: '/', icon: '🏠', label: 'Pulpit' },
   { href: '/nawadnianie', icon: '💦', label: 'Podlewanie' },
   { href: '/sianie', icon: '🌱', label: 'Sianie' },
-  { href: '/podsumowania', icon: '📊', label: 'Podsumowania' },
+  { href: '/zbiory', icon: '🥕', label: 'Zbiory' },
 ]
 
 const moreOperacyjne = [
   { href: '/zamowienia', icon: '📦', label: 'Zamówienia' },
-  { href: '/zbiory', icon: '🥕', label: 'Zbiory' },
+  { href: '/podsumowania', icon: '📊', label: 'Podsumowania' },
   { href: '/harmonogram', icon: '⏰', label: 'Harmonogram' },
   { href: '/kolejka', icon: '📋', label: 'Kolejka' },
   { href: '/historia', icon: '📅', label: 'Historia' },
