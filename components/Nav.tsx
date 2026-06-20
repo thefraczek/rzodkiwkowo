@@ -12,6 +12,7 @@ const links = [
   { href: '/sianie', label: 'Sianie' },
   { href: '/podsumowania', label: 'Podsumowania' },
   { href: '/zbiory', label: 'Zbiory' },
+  { href: '/tempo', label: 'Tempo rwania' },
   { href: '/zamowienia', label: 'Zamówienia' },
   { href: '/dostawy', label: 'Dostawy' },
   { href: '/mapa', label: 'Folie' },
