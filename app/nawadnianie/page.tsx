@@ -72,6 +72,15 @@ export default function NawadnianiePage() {
     setOpen(false); load()
   }
 
+  async function togglePauza() {
+    const nowy = !sterownik?.pauza
+    setSterownik(s => (s ? { ...s, pauza: nowy } : s))   // optymistycznie
+    const { error } = await supabase.from('nawadnianie_sterownik').update({ pauza: nowy }).eq('id', 1)
+    if (error) { toast.error('Nie udało się zmienić: ' + error.message); load(); return }
+    toast.success(nowy ? 'Podlewanie wstrzymane (tryb serwisowy)' : 'Podlewanie wznowione')
+    load()
+  }
+
   const online = !!sterownik?.ostatni_kontakt &&
     (Date.now() - new Date(sterownik.ostatni_kontakt).getTime() < 12 * 60 * 1000)
   const zZaworem = folie.filter(f => f.kanal_zaworu != null)
@@ -105,6 +114,29 @@ export default function NawadnianiePage() {
             : 'Brak kontaktu ze sterownikiem'}
         </p>
       </div>
+
+      {/* tryb serwisowy / pauza */}
+      <button
+        onClick={togglePauza}
+        className={`w-full rounded-2xl border p-4 mb-4 flex items-center gap-3 text-left transition-colors ${
+          sterownik?.pauza ? 'bg-amber-50 border-amber-300 active:bg-amber-100' : 'bg-white border-gray-200 active:bg-gray-50'
+        }`}
+      >
+        <span className="text-xl leading-none">{sterownik?.pauza ? '⏸️' : '▶️'}</span>
+        <div className="flex-1 min-w-0">
+          <p className={`font-semibold ${sterownik?.pauza ? 'text-amber-800' : 'text-gray-900'}`}>
+            {sterownik?.pauza ? 'Podlewanie wstrzymane' : 'Podlewanie aktywne'}
+          </p>
+          <p className="text-xs text-gray-500">
+            {sterownik?.pauza
+              ? 'Tryb serwisowy — zawory zamknięte, czas zamrożony. Dotknij, aby wznowić.'
+              : 'Dotknij, aby wstrzymać na czas naprawy (tryb serwisowy).'}
+          </p>
+        </div>
+        <span className={`text-sm font-semibold px-3 py-1.5 rounded-lg shrink-0 ${sterownik?.pauza ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
+          {sterownik?.pauza ? 'Wznów' : 'Wstrzymaj'}
+        </span>
+      </button>
 
       {/* trwające / w kolejce */}
       {aktywne.length > 0 && (

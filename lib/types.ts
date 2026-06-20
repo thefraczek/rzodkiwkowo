@@ -123,6 +123,7 @@ export type NawadnianieSterownik = {
   zasieg: number | null
   strefy_otwarte: number | null
   uptime_s: number | null
+  pauza: boolean | null
 }
 
 export type NawadnianieHarmonogram = {
