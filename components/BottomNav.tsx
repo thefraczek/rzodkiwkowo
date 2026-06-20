@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -37,10 +37,36 @@ export default function BottomNav() {
   const [open, setOpen] = useState(false)
   const moreActive = moreLinks.some(m => m.href === pathname)
   const { size, setSize } = useFontSize()
+  const navRef = useRef<HTMLElement>(null)
+
+  // iOS Safari: pasek fixed-bottom potrafi "odplywac" na srodek przy zwijaniu paskow przegladarki.
+  // Trzymamy go przy dolnej krawedzi WIDOCZNEGO obszaru (visualViewport). Duzy odstep (klawiatura)
+  // ignorujemy - wtedy pasek zostaje na dole layoutu (chowa sie pod klawiatura, jak normalnie).
+  useEffect(() => {
+    const vv = window.visualViewport
+    const el = navRef.current
+    if (!vv || !el) return
+    let raf = 0
+    const apply = () => {
+      const gap = document.documentElement.clientHeight - (vv.height + vv.offsetTop)
+      el.style.transform = gap > 1 && gap < 150 ? `translateY(${-gap}px)` : 'translateY(0)'
+    }
+    const update = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(apply) }
+    apply()
+    vv.addEventListener('resize', update)
+    vv.addEventListener('scroll', update)
+    window.addEventListener('scroll', update, { passive: true })
+    return () => {
+      cancelAnimationFrame(raf)
+      vv.removeEventListener('resize', update)
+      vv.removeEventListener('scroll', update)
+      window.removeEventListener('scroll', update)
+    }
+  }, [])
 
   return (
     <>
-      <nav className='fixed bottom-0 left-0 right-0 z-30 md:hidden bg-white border-t border-gray-200' style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <nav ref={navRef} className='fixed bottom-0 left-0 right-0 z-30 md:hidden bg-white border-t border-gray-200' style={{ paddingBottom: 'env(safe-area-inset-bottom)', willChange: 'transform' }}>
         <div className='flex' style={{ height: '64px' }}>
           {primary.map(item => {
             const active = pathname === item.href
