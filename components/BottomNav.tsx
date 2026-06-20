@@ -17,7 +17,6 @@ const moreOperacyjne = [
   { href: '/zamowienia', icon: '📦', label: 'Zamówienia' },
   { href: '/podsumowania', icon: '📊', label: 'Podsumowania' },
   { href: '/tempo', icon: '⏱️', label: 'Tempo rwania' },
-  { href: '/harmonogram', icon: '⏰', label: 'Harmonogram' },
   { href: '/kolejka', icon: '📋', label: 'Kolejka' },
   { href: '/historia', icon: '📅', label: 'Historia' },
   { href: '/dostawy', icon: '🚚', label: 'Dostawy' },
@@ -26,6 +25,7 @@ const moreOperacyjne = [
 ]
 
 const moreKonfiguracja = [
+  { href: '/harmonogram', icon: '⏰', label: 'Harmonogram' },
   { href: '/mapa', icon: '⚙️', label: 'Folie' },
   { href: '/odbiorcy', icon: '👥', label: 'Odbiorcy' },
 ]
