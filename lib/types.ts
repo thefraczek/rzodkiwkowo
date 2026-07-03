@@ -108,7 +108,7 @@ export type Nawadnianie = {
   strefa: number
   czas_minut: number
   zrodlo: 'reczne' | 'harmonogram' | 'kolejka'
-  status: 'oczekuje' | 'w_trakcie' | 'zakonczone' | 'blad' | 'wstrzymane'
+  status: 'oczekuje' | 'w_trakcie' | 'zakonczone' | 'blad' | 'wstrzymane' | 'anulowane'
   harmonogram_id: number | null
   kolejnosc: number | null
   created_at: string

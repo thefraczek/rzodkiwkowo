@@ -8,10 +8,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus'
 
 const STATUS_LABEL: Record<string, string> = {
-  oczekuje: 'Czeka w kolejce', w_trakcie: 'Podlewa', zakonczone: 'Zakończone', blad: 'Błąd',
+  oczekuje: 'Czeka w kolejce', w_trakcie: 'Podlewa', zakonczone: 'Zakończone', blad: 'Błąd', anulowane: 'Przerywanie…',
 }
 
 const godz = (iso: string | null) =>
@@ -25,11 +26,12 @@ export default function NawadnianiePage() {
   const [open, setOpen] = useState(false)
   const [wybrana, setWybrana] = useState<Folia | null>(null)
   const [minuty, setMinuty] = useState('10')
+  const [confirmAction, setConfirmAction] = useState<(() => Promise<void>) | null>(null)
 
   async function load() {
     const [f, akt, ost, st] = await Promise.all([
       supabase.from('folie').select('*').order('nazwa'),
-      supabase.from('nawadnianie').select('*, folie(nazwa)').in('status', ['oczekuje', 'w_trakcie']).order('created_at', { ascending: false }),
+      supabase.from('nawadnianie').select('*, folie(nazwa)').in('status', ['oczekuje', 'w_trakcie', 'anulowane']).order('created_at', { ascending: false }),
       supabase.from('nawadnianie').select('*, folie(nazwa)').eq('status', 'zakonczone').order('created_at', { ascending: false }).limit(5),
       supabase.from('nawadnianie_sterownik').select('*').eq('id', 1).maybeSingle(),
     ])
@@ -70,6 +72,29 @@ export default function NawadnianiePage() {
     if (error) { toast.error('Nie udało się zlecić: ' + error.message); return }
     toast.success(`Zlecono podlewanie: ${wybrana.nazwa} (${minuty} min)`)
     setOpen(false); load()
+  }
+
+  async function anuluj(a: Nawadnianie) {
+    // Zlecenie w kolejce — sterownik jeszcze go nie podjął, więc po prostu usuwamy wiersz.
+    // Usuwamy tylko gdy status wciąż 'oczekuje'/'wstrzymane' — jeśli sterownik właśnie
+    // je podjął (status zmienił się na 'w_trakcie'), delete nic nie usunie.
+    const { error } = await supabase.from('nawadnianie').delete()
+      .eq('id', a.id).in('status', ['oczekuje', 'wstrzymane'])
+    if (error) { toast.error('Nie udało się anulować: ' + error.message); return }
+    toast.success('Zlecenie anulowane')
+    load()
+  }
+
+  function przerwij(a: Nawadnianie) {
+    setConfirmAction(() => async () => {
+      // Trwające podlewanie — ustawiamy status 'anulowane'; sterownik przy najbliższym
+      // odpytaniu zamyka zawór i oznacza wpis jako zakończony.
+      const { error } = await supabase.from('nawadnianie')
+        .update({ status: 'anulowane' }).eq('id', a.id).eq('status', 'w_trakcie')
+      if (error) { toast.error('Nie udało się przerwać: ' + error.message); return }
+      toast.success('Wysłano polecenie przerwania — zawór zamknie się za chwilę')
+      load()
+    })
   }
 
   async function togglePauza() {
@@ -149,7 +174,7 @@ export default function NawadnianiePage() {
               const pozostalo = koniec ? Math.max(0, Math.round((koniec.getTime() - Date.now()) / 60000)) : null
               return (
                 <div key={a.id} className="flex items-center gap-3 px-4 py-3">
-                  <span className="text-xl leading-none">{a.status === 'w_trakcie' ? '💦' : '⏳'}</span>
+                  <span className="text-xl leading-none">{a.status === 'w_trakcie' ? '💦' : a.status === 'anulowane' ? '🛑' : '⏳'}</span>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-gray-900">{(a.folie as any)?.nazwa ?? `Strefa ${a.strefa}`}</p>
                     {a.status === 'w_trakcie' && start ? (
@@ -161,6 +186,16 @@ export default function NawadnianiePage() {
                       <p className="text-sm text-gray-500">{a.czas_minut} min · {STATUS_LABEL[a.status]}</p>
                     )}
                   </div>
+                  {a.status === 'oczekuje' && a.zrodlo !== 'kolejka' && (
+                    <button onClick={() => anuluj(a)} className="shrink-0 text-sm font-medium text-gray-400 hover:text-red-500 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-red-200 hover:bg-red-50 active:bg-red-100 transition-colors">
+                      Anuluj
+                    </button>
+                  )}
+                  {a.status === 'w_trakcie' && (
+                    <button onClick={() => przerwij(a)} className="shrink-0 text-sm font-semibold text-red-600 px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 active:bg-red-200 transition-colors">
+                      🛑 Przerwij
+                    </button>
+                  )}
                 </div>
               )
             })}
@@ -237,6 +272,14 @@ export default function NawadnianiePage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!confirmAction}
+        message='Przerwać trwające podlewanie? Zawór zostanie zamknięty przy najbliższym kontakcie ze sterownikiem.'
+        confirmLabel='Przerwij'
+        onConfirm={async () => { await confirmAction?.(); setConfirmAction(null) }}
+        onCancel={() => setConfirmAction(null)}
+      />
     </div>
   )
 }
