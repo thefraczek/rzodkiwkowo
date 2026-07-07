@@ -40,7 +40,7 @@ export default function BottomNav() {
 
   return (
     <>
-      <nav className='md:hidden shrink-0 bg-white border-t border-gray-200' style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <nav className='fixed bottom-0 left-0 right-0 z-30 md:hidden bg-white border-t border-gray-200' style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className='flex' style={{ height: '64px' }}>
           {primary.map(item => {
             const active = pathname === item.href

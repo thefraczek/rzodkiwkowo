@@ -8,7 +8,6 @@ import BottomNav from "@/components/BottomNav";
 import MobileHeader from "@/components/MobileHeader";
 import { AuthProvider } from "@/components/AuthProvider";
 import FontSizeProvider from "@/components/FontSizeProvider";
-import ScrollTopOnNav from "@/components/ScrollTopOnNav";
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
@@ -31,17 +30,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${inter.className} min-h-screen bg-gray-50 antialiased`}>
         <FontSizeProvider>
           <AuthProvider>
-            <div className="flex flex-col h-[100dvh] overflow-hidden">
-              <Nav />
-              <MobileHeader />
-              <main id="app-main" className="flex-1 overflow-y-auto overscroll-none">
-                <div className="max-w-5xl mx-auto px-4 pt-4 pb-8 md:pt-6">
-                  {children}
-                </div>
-              </main>
-              <BottomNav />
-            </div>
-            <ScrollTopOnNav />
+            <Nav />
+            <MobileHeader />
+            <main className="max-w-5xl mx-auto px-4 pt-4 pb-24 md:pt-6 md:pb-8">
+              {children}
+            </main>
+            <BottomNav />
           </AuthProvider>
         </FontSizeProvider>
         <Toaster richColors position="top-center" />
