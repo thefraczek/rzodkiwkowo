@@ -97,6 +97,16 @@ export default function NawadnianiePage() {
     })
   }
 
+  // Wpis utknal w 'anulowane' (np. sterownik zgasl zanim go sfinalizowal) — reczne domkniecie.
+  // Zawor i tak jest zamkniety (brak zasilania = zawor zamkniety, albo lokalny timer/failsafe).
+  async function wyczysc(a: Nawadnianie) {
+    const { error } = await supabase.from('nawadnianie')
+      .update({ status: 'zakonczone' }).eq('id', a.id).eq('status', 'anulowane')
+    if (error) { toast.error('Nie udało się wyczyścić: ' + error.message); return }
+    toast.success('Wpis wyczyszczony')
+    load()
+  }
+
   async function togglePauza() {
     const nowy = !sterownik?.pauza
     setSterownik(s => (s ? { ...s, pauza: nowy } : s))   // optymistycznie
@@ -194,6 +204,11 @@ export default function NawadnianiePage() {
                   {a.status === 'w_trakcie' && (
                     <button onClick={() => przerwij(a)} className="shrink-0 text-sm font-semibold text-red-600 px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 active:bg-red-200 transition-colors">
                       🛑 Przerwij
+                    </button>
+                  )}
+                  {a.status === 'anulowane' && (
+                    <button onClick={() => wyczysc(a)} className="shrink-0 text-sm font-medium text-gray-400 hover:text-gray-700 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 active:bg-gray-100 transition-colors">
+                      Wyczyść
                     </button>
                   )}
                 </div>

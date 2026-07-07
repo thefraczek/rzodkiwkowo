@@ -9,9 +9,11 @@
 --
 -- Zlecenia oczekujące appka anuluje przez DELETE (sterownik nigdy ich nie widzi).
 --
--- Jeśli kolumna status ma CHECK constraint, rozszerz go o 'anulowane':
--- (dopasuj nazwę constraintu do faktycznej — sprawdź: \d nawadnianie)
---
--- ALTER TABLE nawadnianie DROP CONSTRAINT IF EXISTS nawadnianie_status_check;
--- ALTER TABLE nawadnianie ADD CONSTRAINT nawadnianie_status_check
---   CHECK (status IN ('oczekuje','w_trakcie','zakonczone','blad','wstrzymane','anulowane'));
+-- CHECK constraint na kolumnie status trzeba rozszerzyc o 'anulowane', inaczej
+-- UPDATE na 'anulowane' zostanie odrzucony. Domyslna nazwa to nawadnianie_status_check
+-- — jesli u Ciebie jest inna, podmien ja w DROP ponizej. Sprawdzisz zapytaniem:
+--   SELECT conname, pg_get_constraintdef(oid) FROM pg_constraint
+--   WHERE conrelid = 'nawadnianie'::regclass;
+ALTER TABLE nawadnianie DROP CONSTRAINT IF EXISTS nawadnianie_status_check;
+ALTER TABLE nawadnianie ADD CONSTRAINT nawadnianie_status_check
+  CHECK (status IN ('oczekuje','w_trakcie','zakonczone','blad','wstrzymane','anulowane'));
