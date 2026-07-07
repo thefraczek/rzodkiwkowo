@@ -34,7 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="flex flex-col h-[100dvh] overflow-hidden">
               <Nav />
               <MobileHeader />
-              <main id="app-main" className="flex-1 overflow-y-auto overscroll-contain">
+              <main id="app-main" className="flex-1 overflow-y-auto overscroll-none">
                 <div className="max-w-5xl mx-auto px-4 pt-4 pb-8 md:pt-6">
                   {children}
                 </div>

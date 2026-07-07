@@ -127,4 +127,8 @@
   html {
     @apply font-sans;
   }
+  /* iOS: bez odbicia/rubber-band calej strony (menu nie "skacze" przy pociagnieciu) */
+  html, body {
+    overscroll-behavior: none;
+  }
 }
