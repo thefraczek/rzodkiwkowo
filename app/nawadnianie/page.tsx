@@ -2,7 +2,8 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import type { Folia, Nawadnianie, NawadnianieSterownik } from '@/lib/types'
+import type { Folia, Nawadnianie, NawadnianieSterownik, Pogoda } from '@/lib/types'
+import PogodaCard, { pogodaBlokuje } from '@/components/PogodaCard'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,7 +13,8 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus'
 
 const STATUS_LABEL: Record<string, string> = {
-  oczekuje: 'Czeka w kolejce', w_trakcie: 'Podlewa', zakonczone: 'Zakończone', blad: 'Błąd', anulowane: 'Przerywanie…',
+  oczekuje: 'Czeka w kolejce', w_trakcie: 'Podlewa', zakonczone: 'Zakończone', blad: 'Błąd',
+  anulowane: 'Przerywanie…', pominiete: 'Pominięte',
 }
 
 const godz = (iso: string | null) =>
@@ -23,22 +25,25 @@ export default function NawadnianiePage() {
   const [aktywne, setAktywne] = useState<Nawadnianie[]>([])
   const [ostatnie, setOstatnie] = useState<Nawadnianie[]>([])
   const [sterownik, setSterownik] = useState<NawadnianieSterownik | null>(null)
+  const [pogoda, setPogoda] = useState<Pogoda | null>(null)
   const [open, setOpen] = useState(false)
   const [wybrana, setWybrana] = useState<Folia | null>(null)
   const [minuty, setMinuty] = useState('10')
   const [confirmAction, setConfirmAction] = useState<(() => Promise<void>) | null>(null)
 
   async function load() {
-    const [f, akt, ost, st] = await Promise.all([
+    const [f, akt, ost, st, pg] = await Promise.all([
       supabase.from('folie').select('*').order('nazwa'),
       supabase.from('nawadnianie').select('*, folie(nazwa)').in('status', ['oczekuje', 'w_trakcie', 'anulowane']).order('created_at', { ascending: false }),
-      supabase.from('nawadnianie').select('*, folie(nazwa)').eq('status', 'zakonczone').order('created_at', { ascending: false }).limit(5),
+      supabase.from('nawadnianie').select('*, folie(nazwa)').in('status', ['zakonczone', 'pominiete']).order('created_at', { ascending: false }).limit(5),
       supabase.from('nawadnianie_sterownik').select('*').eq('id', 1).maybeSingle(),
+      supabase.from('pogoda').select('*').eq('id', 1).maybeSingle(),
     ])
     setFolie(f.data ?? [])
     setAktywne(akt.data ?? [])
     setOstatnie(ost.data ?? [])
     setSterownik(st.data ?? null)
+    setPogoda(pg.data ?? null)
   }
 
   useEffect(() => { load() }, [])
@@ -173,6 +178,9 @@ export default function NawadnianiePage() {
         </span>
       </button>
 
+      {/* pogoda / blokada deszczowa */}
+      <PogodaCard pogoda={pogoda} onZmiana={load} />
+
       {/* trwające / w kolejce */}
       {aktywne.length > 0 && (
         <div className="mb-4">
@@ -254,12 +262,15 @@ export default function NawadnianiePage() {
           <div className="bg-white rounded-2xl border divide-y overflow-hidden">
             {ostatnie.map(o => (
               <div key={o.id} className="flex items-center gap-3 px-4 py-3">
-                <span className="text-lg leading-none">✓</span>
+                <span className="text-lg leading-none">{o.status === 'pominiete' ? '🌧️' : '✓'}</span>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-900 truncate">{(o.folie as any)?.nazwa ?? `Strefa ${o.strefa}`}</p>
                   <p className="text-xs text-gray-400">
                     {o.czas_minut} min · {new Date(o.created_at).toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' })} · {o.zrodlo === 'harmonogram' ? 'harmonogram' : 'ręcznie'}
                   </p>
+                  {o.status === 'pominiete' && (
+                    <p className="text-xs text-blue-500">Pominięte — {o.powod ?? 'deszcz'}</p>
+                  )}
                 </div>
               </div>
             ))}
@@ -271,6 +282,12 @@ export default function NawadnianiePage() {
         <DialogContent>
           <DialogHeader><DialogTitle>Podlej: {wybrana?.nazwa}</DialogTitle></DialogHeader>
           <div className="space-y-4 mt-2">
+            {/* Ręczne podlewanie NIE jest blokowane przez pogodę — tylko ostrzegamy */}
+            {pogodaBlokuje(pogoda).blokuje && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-800">
+                🌧️ {pogodaBlokuje(pogoda).powod}. Harmonogram jest wstrzymany — ręcznie możesz podlać mimo to.
+              </div>
+            )}
             <div className="flex gap-2">
               {['5', '10', '15', '20'].map(m => (
                 <button key={m} onClick={() => setMinuty(m)} className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-semibold transition-colors ${minuty === m ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 text-gray-500 active:bg-gray-50'}`}>{m} min</button>

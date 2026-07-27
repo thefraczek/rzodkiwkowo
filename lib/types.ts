@@ -108,13 +108,32 @@ export type Nawadnianie = {
   strefa: number
   czas_minut: number
   zrodlo: 'reczne' | 'harmonogram' | 'kolejka'
-  status: 'oczekuje' | 'w_trakcie' | 'zakonczone' | 'blad' | 'wstrzymane' | 'anulowane'
+  status: 'oczekuje' | 'w_trakcie' | 'zakonczone' | 'blad' | 'wstrzymane' | 'anulowane' | 'pominiete'
   harmonogram_id: number | null
   kolejnosc: number | null
+  powod: string | null
   created_at: string
   rozpoczeto: string | null
   zakonczono: string | null
   folie?: Folia
+}
+
+export type Pogoda = {
+  id: number
+  lat: number
+  lon: number
+  aktywna: boolean
+  godzin_wstecz: number
+  godzin_naprzod: number
+  prog_opad_wstecz: number
+  prog_opad_naprzod: number
+  prog_szansa: number
+  opad_wstecz: number | null
+  opad_naprzod: number | null
+  szansa_naprzod: number | null
+  temperatura: number | null
+  aktualizacja: string | null
+  blad: string | null
 }
 
 export type NawadnianieSterownik = {
