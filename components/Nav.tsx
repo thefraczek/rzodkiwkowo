@@ -24,7 +24,7 @@ const links = [
 export default function Nav() {
   const pathname = usePathname()
   return (
-    <header className='hidden md:block sticky top-0 bg-white border-b border-gray-200 z-10'>
+    <header className='hidden xl:block sticky top-0 bg-white border-b border-gray-200 z-10'>
       <div className='max-w-5xl mx-auto px-4'>
         <div className='flex items-center gap-1 h-14'>
           <span className='font-bold text-green-700 mr-3 shrink-0'>🌱 Rzodkiewkowo</span>

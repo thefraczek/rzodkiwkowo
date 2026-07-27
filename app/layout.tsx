@@ -32,7 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <AuthProvider>
             <Nav />
             <MobileHeader />
-            <main className="max-w-5xl mx-auto px-4 pt-4 pb-24 md:pt-6 md:pb-8">
+            <main className="max-w-5xl mx-auto px-4 pt-4 pb-24 xl:pt-6 xl:pb-8">
               {children}
             </main>
             <BottomNav />

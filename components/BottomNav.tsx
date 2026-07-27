@@ -40,7 +40,7 @@ export default function BottomNav() {
 
   return (
     <>
-      <nav className='fixed bottom-0 left-0 right-0 z-30 md:hidden bg-white border-t border-gray-200' style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <nav className='fixed bottom-0 left-0 right-0 z-30 xl:hidden bg-white border-t border-gray-200' style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className='flex' style={{ height: '64px' }}>
           {primary.map(item => {
             const active = pathname === item.href
@@ -65,8 +65,8 @@ export default function BottomNav() {
 
       {open && (
         <>
-          <div className='fixed inset-0 bg-black/50 z-40 md:hidden' onClick={() => setOpen(false)} />
-          <div className='fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white rounded-t-2xl shadow-2xl flex flex-col max-h-[85svh]' style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+          <div className='fixed inset-0 bg-black/50 z-40 xl:hidden' onClick={() => setOpen(false)} />
+          <div className='fixed bottom-0 left-0 right-0 z-50 xl:hidden bg-white rounded-t-2xl shadow-2xl flex flex-col max-h-[85svh]' style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
             {/* drag handle + header — zawsze widoczne */}
             <div className='shrink-0'>
               <div className='w-10 h-1 bg-gray-200 rounded-full mx-auto mt-3 mb-3' />

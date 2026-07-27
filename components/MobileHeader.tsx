@@ -12,7 +12,7 @@ export default function MobileHeader() {
 
   return (
     <header
-      className='md:hidden sticky top-0 bg-white border-b border-gray-200 z-30 flex items-center px-4'
+      className='xl:hidden sticky top-0 bg-white border-b border-gray-200 z-30 flex items-center px-4'
       style={{ height: '44px', paddingTop: 'env(safe-area-inset-top)' }}
     >
       <span className='font-bold text-green-700 flex-1 text-sm'>🌱 Rzodkiewkowo</span>
