@@ -179,7 +179,7 @@ export default function NawadnianiePage() {
       </button>
 
       {/* pogoda / blokada deszczowa */}
-      <PogodaCard pogoda={pogoda} folie={folie} onZmiana={load} />
+      <PogodaCard pogoda={pogoda} onZmiana={load} />
 
       {/* trwające / w kolejce */}
       {aktywne.length > 0 && (
@@ -243,7 +243,7 @@ export default function NawadnianiePage() {
                 <p className="font-semibold text-gray-900">{f.nazwa}</p>
                 <p className="text-sm text-gray-500">
                   zawór {f.kanal_zaworu}
-                  {f.zakryta && <span className="text-gray-400"> · 🏠 założona</span>}
+                  <span className="text-gray-400">{f.zakryta ? ' · 🏠 folia założona' : ' · 🌧️ odkryta'}</span>
                 </p>
               </div>
               {st === 'w_trakcie' ? (
