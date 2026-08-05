@@ -13,7 +13,7 @@ import { formatDatePL } from '@/lib/date'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus'
 
-const empty = { nazwa: '', data_nalozenia: '', metry_kwadratowe: '', szerokosc: '160', wysokosc: '80' }
+const empty = { nazwa: '', data_nalozenia: '', metry_kwadratowe: '', szerokosc: '160', wysokosc: '80', zakryta: false }
 
 export default function MapaPage() {
   const [folie, setFolie] = useState<Folia[]>([])
@@ -44,6 +44,7 @@ export default function MapaPage() {
       metry_kwadratowe: f.metry_kwadratowe != null ? String(f.metry_kwadratowe) : '',
       szerokosc: String(f.szerokosc),
       wysokosc: String(f.wysokosc),
+      zakryta: !!f.zakryta,
     })
     setEditId(f.id)
     setOpen(true)
@@ -56,6 +57,7 @@ export default function MapaPage() {
       metry_kwadratowe: form.metry_kwadratowe ? Number(form.metry_kwadratowe) : null,
       szerokosc: form.szerokosc ? Number(form.szerokosc) : 160,
       wysokosc: form.wysokosc ? Number(form.wysokosc) : 80,
+      zakryta: form.zakryta,
     }
 
     const { error } = editId
@@ -109,6 +111,7 @@ export default function MapaPage() {
                   {f.metry_kwadratowe != null && <span>{f.metry_kwadratowe} m² · </span>}
                   {f.szerokosc} × {f.wysokosc} px
                   {f.data_nalozenia && <span> · Od {formatDatePL(f.data_nalozenia)}</span>}
+                  {f.zakryta && <span> · 🏠 założona</span>}
                 </p>
               </div>
               <div className="flex gap-1 shrink-0">
@@ -136,6 +139,22 @@ export default function MapaPage() {
               <Label>Data nałożenia</Label>
               <Input type="date" value={form.data_nalozenia} onChange={e => setForm(f => ({ ...f, data_nalozenia: e.target.value }))} />
             </div>
+            <button
+              type="button"
+              onClick={() => setForm(f => ({ ...f, zakryta: !f.zakryta }))}
+              className={`w-full rounded-xl border p-3 flex items-center gap-3 text-left transition-colors ${form.zakryta ? 'border-gray-800 bg-gray-50 active:bg-gray-100' : 'border-gray-200 active:bg-gray-50'}`}
+            >
+              <span className="text-lg leading-none">{form.zakryta ? '🏠' : '🌧️'}</span>
+              <span className="flex-1 text-sm">
+                {form.zakryta ? 'Folia założona' : 'Folia odkryta'}
+                <span className="block text-xs text-gray-400">
+                  {form.zakryta
+                    ? 'Deszcz nie dochodzi — podlewana mimo opadu'
+                    : 'Deszcz dochodzi — harmonogram wstrzymany przy opadach'}
+                </span>
+              </span>
+            </button>
+
             <div>
               <Label>Metry kwadratowe</Label>
               <Input

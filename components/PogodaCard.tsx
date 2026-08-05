@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import type { Pogoda } from '@/lib/types'
+import type { Pogoda, Folia } from '@/lib/types'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -36,7 +36,10 @@ const empty = {
   prog_opad_wstecz: '', prog_opad_naprzod: '', prog_szansa: '',
 }
 
-export default function PogodaCard({ pogoda: pogodaProp, onZmiana }: { pogoda: Pogoda | null; onZmiana: () => void }) {
+export default function PogodaCard(
+  { pogoda: pogodaProp, folie = [], onZmiana }:
+  { pogoda: Pogoda | null; folie?: Folia[]; onZmiana: () => void },
+) {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(empty)
   const [odswiezanie, setOdswiezanie] = useState(false)
@@ -76,6 +79,13 @@ export default function PogodaCard({ pogoda: pogodaProp, onZmiana }: { pogoda: P
     onZmiana()
   }
 
+  // folia założona -> deszcz do niej nie dochodzi -> podlewamy mimo opadu
+  const toggleZakryta = async (f: Folia) => {
+    const { error } = await supabase.from('folie').update({ zakryta: !f.zakryta }).eq('id', f.id)
+    if (error) { toast.error('Nie udało się zmienić: ' + error.message); return }
+    onZmiana()
+  }
+
   // pg_net jest asynchroniczny: pierwsze wywołanie wysyła zapytanie, drugie czyta odpowiedź
   async function odswiez() {
     setOdswiezanie(true)
@@ -90,6 +100,8 @@ export default function PogodaCard({ pogoda: pogodaProp, onZmiana }: { pogoda: P
   }
 
   const brakDanych = pogoda.aktualizacja == null
+  const zZaworem = folie.filter(f => f.kanal_zaworu != null)
+  const zakryte = zZaworem.filter(f => f.zakryta)
 
   return (
     <>
@@ -144,6 +156,12 @@ export default function PogodaCard({ pogoda: pogodaProp, onZmiana }: { pogoda: P
           </div>
         )}
 
+        {zakryte.length > 0 && (
+          <p className="text-xs text-gray-500 mt-2">
+            🏠 Pod przykryciem ({zakryte.length}): {zakryte.map(f => f.nazwa).join(', ')} — podlewane mimo deszczu
+          </p>
+        )}
+
         {pogoda.blad && <p className="text-xs text-red-500 mt-2">Błąd pogody: {pogoda.blad}</p>}
       </div>
 
@@ -194,6 +212,29 @@ export default function PogodaCard({ pogoda: pogodaProp, onZmiana }: { pogoda: P
                   <Input type="number" min="0" max="100" value={form.prog_szansa} onChange={e => setForm(f => ({ ...f, prog_szansa: e.target.value }))} />
                 </div>
               </div>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Które folie obejmuje blokada</p>
+              <p className="text-xs text-gray-400 mb-2">
+                Zaznacz folie, które są <b>założone</b> — deszcz do nich nie dochodzi, więc będą podlewane mimo opadu.
+              </p>
+              {zZaworem.length === 0 ? (
+                <p className="text-sm text-gray-400 py-2">Żadna folia nie ma przypisanego zaworu.</p>
+              ) : (
+                <div className="border rounded-xl divide-y overflow-hidden">
+                  {zZaworem.map(f => (
+                    <button key={f.id} onClick={() => toggleZakryta(f)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 text-left active:bg-gray-50 transition-colors">
+                      <span className="text-base leading-none">{f.zakryta ? '🏠' : '🌧️'}</span>
+                      <span className="flex-1 min-w-0 text-sm font-medium text-gray-900 truncate">{f.nazwa}</span>
+                      <span className={`text-xs font-semibold px-2 py-1 rounded-lg shrink-0 ${f.zakryta ? 'bg-gray-800 text-white' : 'bg-blue-50 text-blue-600'}`}>
+                        {f.zakryta ? 'założona' : 'odkryta'}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <button onClick={toggleAktywna}

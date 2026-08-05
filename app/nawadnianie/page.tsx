@@ -179,7 +179,7 @@ export default function NawadnianiePage() {
       </button>
 
       {/* pogoda / blokada deszczowa */}
-      <PogodaCard pogoda={pogoda} onZmiana={load} />
+      <PogodaCard pogoda={pogoda} folie={folie} onZmiana={load} />
 
       {/* trwające / w kolejce */}
       {aktywne.length > 0 && (
@@ -241,7 +241,10 @@ export default function NawadnianiePage() {
               <div className="w-3 self-stretch rounded-full shrink-0" style={{ background: f.kolor ?? '#d1d5db' }} />
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-gray-900">{f.nazwa}</p>
-                <p className="text-sm text-gray-500">zawór {f.kanal_zaworu}</p>
+                <p className="text-sm text-gray-500">
+                  zawór {f.kanal_zaworu}
+                  {f.zakryta && <span className="text-gray-400"> · 🏠 założona</span>}
+                </p>
               </div>
               {st === 'w_trakcie' ? (
                 <span className="text-sm font-medium text-blue-600 shrink-0">💦 Podlewa</span>
@@ -282,8 +285,9 @@ export default function NawadnianiePage() {
         <DialogContent>
           <DialogHeader><DialogTitle>Podlej: {wybrana?.nazwa}</DialogTitle></DialogHeader>
           <div className="space-y-4 mt-2">
-            {/* Ręczne podlewanie NIE jest blokowane przez pogodę — tylko ostrzegamy */}
-            {pogodaBlokuje(pogoda).blokuje && (
+            {/* Ręczne podlewanie NIE jest blokowane przez pogodę — tylko ostrzegamy.
+                Przy folii założonej nie ostrzegamy wcale: deszcz do niej nie dochodzi. */}
+            {pogodaBlokuje(pogoda).blokuje && !wybrana?.zakryta && (
               <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-800">
                 🌧️ {pogodaBlokuje(pogoda).powod}. Harmonogram jest wstrzymany — ręcznie możesz podlać mimo to.
               </div>

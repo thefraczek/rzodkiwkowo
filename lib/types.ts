@@ -19,6 +19,7 @@ export type Folia = {
   wysokosc: number
   kolor: string
   kanal_zaworu: number | null
+  zakryta: boolean          // folia założona -> blokada deszczowa jej nie dotyczy
   created_at: string
 }
 
